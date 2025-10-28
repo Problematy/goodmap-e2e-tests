@@ -26,7 +26,10 @@ let scriptContent = null;
 before(() => {
   // Fetch the script content once using Node.js
   cy.task('fetchWebpackScript').then((content) => {
-    scriptContent = content;
+  if (!content) {
+   throw new Error('Failed to fetch webpack script: content is empty');
+  }
+  scriptContent = content;
   });
 });
 
