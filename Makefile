@@ -14,7 +14,7 @@ lint-check:
 	npm run prettier
 
 run-e2e-goodmap:
-	@cd $(GOODMAP_PATH) && poetry run flask --app "goodmap.goodmap:create_app(config_path='$(CONFIG_PATH)')" run
+	@PYTHONPATH=$(GOODMAP_PATH) $$(cd $(GOODMAP_PATH) && poetry run which flask) --app "goodmap.goodmap:create_app(config_path='$(CONFIG_PATH)')" run
 
 install-test-dependencies:
 	npm install
