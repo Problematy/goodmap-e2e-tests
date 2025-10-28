@@ -69,7 +69,7 @@ jobs:
     - name: Run tests
       working-directory: goodmap-e2e-tests
       env:
-        CONFIG_PATH: /home/runner/work/goodmap-e2e-tests/goodmap-e2e-tests/e2e_test_config.yml
+        CONFIG_PATH: /home/runner/work/goodmap-e2e-tests/goodmap-e2e-tests/goodmap-e2e-tests/e2e_test_config.yml
         GOODMAP_PATH: /home/runner/work/goodmap-e2e-tests/goodmap-e2e-tests/goodmap
         GOODMAP_FRONTEND_REPOSITORY: ${{ inputs.goodmap-frontend-repository }}
       run: |
