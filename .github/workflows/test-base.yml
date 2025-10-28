@@ -66,5 +66,5 @@ jobs:
         set -e
         (cd ../goodmap-frontend && make serve)&
         caddy run&
-        (cd ../goodmap && make run-e2e-goodmap)&
+        (cd ../goodmap && make run-e2e-env)&
         make e2e-tests
