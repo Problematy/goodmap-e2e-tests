@@ -15,6 +15,10 @@ on:
         required: false
         type: string
         default: problematy/goodmap-frontend
+      goodmap-e2e-version:
+        required: false
+        type: string
+
 
 jobs:
   e2e-tests:
