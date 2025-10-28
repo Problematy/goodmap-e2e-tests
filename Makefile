@@ -1,5 +1,5 @@
 GOODMAP_VERSION ?=
-CONFIG_PATH='e2e_test_config.yml'
+CONFIG_PATH ?= 'e2e_test_config.yml'
 
 install-goodmap:
 	pip install goodmap${GOODMAP_VERSION:+==}${GOODMAP_VERSION}
