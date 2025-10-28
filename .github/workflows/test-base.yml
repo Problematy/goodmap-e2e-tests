@@ -61,6 +61,11 @@ jobs:
     - name: Install e2e dependencies
       working-directory: goodmap-e2e-tests
       run: npm install
+    - name: run list
+      working-directory: goodmap-e2e-tests
+      run: |
+        pwd
+        ls
     - name: Run tests
       working-directory: goodmap-e2e-tests
       env:
