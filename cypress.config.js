@@ -4,7 +4,6 @@ const http = require("http");
 module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://localhost:5000/',
-    chromeWebSecurity: false,
     setupNodeEvents(on, config) {
       // Task to fetch from webpack-dev-server
       on('task', {
