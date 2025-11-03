@@ -4,71 +4,117 @@ on:
       goodmap-version:
         required: true
         type: string
+        default: main
       goodmap-frontend-version:
         required: true
         type: string
-      goodmap-repository:
-        required: false
-        type: string
-        default: problematy/goodmap
-      goodmap-frontend-repository:
-        required: false
-        type: string
-        default: problematy/goodmap-frontend
+        default: main
       goodmap-e2e-version:
         required: false
         type: string
-
+        default: main
+      calling-repo:
+        description: 'Which repository is calling this workflow (goodmap-e2e-tests, goodmap, or goodmap-frontend)'
+        required: false
+        type: string
+        default: 'goodmap-e2e-tests'
+      e2e-tests-path:
+        description: 'Path to e2e-tests repository (leave empty to auto-detect based on calling-repo)'
+        required: false
+        type: string
+        default: 'goodmap-e2e-tests'
+      goodmap-path:
+        description: 'Path to goodmap repository (leave empty to auto-detect based on calling-repo)'
+        required: false
+        type: string
+        default: 'goodmap'
+      goodmap-frontend-path:
+        description: 'Path to goodmap-frontend repository (leave empty to auto-detect based on calling-repo)'
+        required: false
+        type: string
+        default: 'goodmap-frontend'
 
 jobs:
   e2e-tests:
     name: E2E tests
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout tests repository
+    - name: Checkout calling repository
       uses: actions/checkout@v4
       with:
-        path: goodmap-e2e-tests
+        submodules: ${{ inputs.calling-repo == 'goodmap' && 'true' || 'false' }}
+
+    - name: Checkout e2e-tests repository
+      if: inputs.calling-repo != 'goodmap-e2e-tests'
+      uses: actions/checkout@v4
+      with:
+        path: ${{ inputs.e2e-tests-path }}
         repository: problematy/goodmap-e2e-tests
         ref: ${{ inputs.goodmap-e2e-version }}
+
     - name: Checkout goodmap repository
+      if: inputs.calling-repo != 'goodmap'
       uses: actions/checkout@v4
       with:
-        path: goodmap
-        repository: problematy/goodmap
+        path: ${{ inputs.goodmap-path }}
+        repository: Problematy/goodmap
         submodules: 'true'
         ref: ${{ inputs.goodmap-version }}
-    - name: Checkout goodmap frontend repository
+
+    - name: Checkout goodmap-frontend repository
+      if: inputs.calling-repo != 'goodmap-frontend'
       uses: actions/checkout@v4
       with:
-        repository: problematy/goodmap-frontend
+        repository: Problematy/goodmap-frontend
         ref: ${{ inputs.goodmap-frontend-version }}
-        path: goodmap-frontend
+        path: ${{ inputs.goodmap-frontend-path }}
+
     - name: Install frontend dependencies
-      working-directory: goodmap-frontend
+      working-directory: ${{ inputs.goodmap-frontend-path }}
       run: npm install
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
+
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
         version: 'latest'
+
     - name: Install python dependencies
-      working-directory: goodmap
+      working-directory: ${{ inputs.goodmap-path }}
       run: poetry install
+
     - name: Install e2e dependencies
-      working-directory: goodmap-e2e-tests
+      working-directory: ${{ inputs.e2e-tests-path }}
       run: npm install
-    - name: Run tests
-      working-directory: goodmap-e2e-tests
+
+    - name: Run e2e tests
+      working-directory: ${{ inputs.e2e-tests-path }}
       env:
-        CONFIG_PATH: ${{ github.workspace }}/goodmap-e2e-tests/e2e_test_config.yml
-        GOODMAP_PATH: ${{ github.workspace }}/goodmap
-        GOODMAP_FRONTEND_REPOSITORY: ${{ inputs.goodmap-frontend-repository }}
+        CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_test_config.yml
+        GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
-        set -e
-        (cd ../goodmap-frontend && make serve)&
-        make run-e2e-goodmap&
+        setsid make run-e2e-goodmap &
+        SERVER_PID=$!
+        trap "kill -TERM -$SERVER_PID; wait $SERVER_PID 2>/dev/null || true" EXIT
+        sleep 5
         make e2e-tests
+
+    - name: Generate e2e stress test data
+      working-directory: ${{ inputs.e2e-tests-path }}
+      run: make e2e-stress-tests-generate-data
+
+    - name: Run e2e stress tests
+      working-directory: ${{ inputs.e2e-tests-path }}
+      env:
+        CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_stress_test_config.yml
+        GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
+      run: |
+        setsid make run-e2e-stress-env &
+        SERVER_PID=$!
+        trap "kill -TERM -$SERVER_PID; wait $SERVER_PID 2>/dev/null || true" EXIT
+        sleep 5
+        make e2e-stress-tests
