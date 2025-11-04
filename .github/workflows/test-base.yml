@@ -104,6 +104,7 @@ jobs:
       env:
         CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_test_config.yml
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
+        NO_COLOR: 1
       run: |
         set -e
         make run-e2e-goodmap &
@@ -131,6 +132,7 @@ jobs:
       env:
         CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_stress_test_config.yml
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
+        NO_COLOR: 1
       run: |
         set -e
         make run-e2e-stress-env &
@@ -156,32 +158,34 @@ jobs:
         script: |
           const fs = require('fs');
 
-          // Strip ANSI escape codes
-          const stripAnsi = (str) => str.replace(/\u001b\[[0-9;]*m/g, '');
-
-          // Truncate and get summary
-          const getSummary = (text, maxLines = 50) => {
+          // Extract only the final summary table
+          const extractSummary = (text) => {
             const lines = text.split('\n');
-            if (lines.length <= maxLines) return text;
 
-            // Find test summary lines (passing/failing)
-            const summaryStart = lines.findIndex(l => l.includes('passing') || l.includes('failing'));
-            const summary = summaryStart >= 0 ? lines.slice(summaryStart, summaryStart + 10).join('\n') : '';
+            // Find "Run Finished" section
+            const finishedIndex = lines.findIndex(l => l.includes('Run Finished'));
+            if (finishedIndex === -1) return 'No test results found';
 
-            return `${lines.slice(0, 20).join('\n')}\n\n... (output truncated, ${lines.length} total lines) ...\n\n${summary}`;
+            // Get the summary table (next ~15 lines after "Run Finished")
+            const summaryLines = lines.slice(finishedIndex, finishedIndex + 20);
+
+            // Find the "All specs passed" or results line
+            const resultLine = summaryLines.find(l => l.includes('All specs passed') || l.includes('passing'));
+
+            return summaryLines.slice(0, 15).join('\n') + '\n' + (resultLine || '');
           };
 
           let comment = '## 🧪 E2E Test Results\n\n';
 
           if (fs.existsSync('/tmp/e2e-tests-output.txt')) {
-            const basicTests = stripAnsi(fs.readFileSync('/tmp/e2e-tests-output.txt', 'utf8'));
-            const summary = getSummary(basicTests);
+            const basicTests = fs.readFileSync('/tmp/e2e-tests-output.txt', 'utf8');
+            const summary = extractSummary(basicTests);
             comment += '### Basic E2E Tests\n```\n' + summary + '\n```\n\n';
           }
 
           if (fs.existsSync('/tmp/e2e-stress-tests-output.txt')) {
-            const stressTests = stripAnsi(fs.readFileSync('/tmp/e2e-stress-tests-output.txt', 'utf8'));
-            const summary = getSummary(stressTests);
+            const stressTests = fs.readFileSync('/tmp/e2e-stress-tests-output.txt', 'utf8');
+            const summary = extractSummary(stressTests);
             comment += '### Stress Tests\n```\n' + summary + '\n```\n';
           }
 
