@@ -32,7 +32,7 @@ on:
         default: 'goodmap-frontend'
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 jobs:
