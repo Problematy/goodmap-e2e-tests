@@ -14,12 +14,11 @@ on:
         description: 'Which repository is calling this workflow (goodmap-e2e-tests, goodmap, or goodmap-frontend)'
         required: false
         type: string
-        default: 'goodmap-e2e-tests'
       e2e-tests-path:
         description: 'Path to e2e-tests repository (leave empty to auto-detect based on calling-repo)'
         required: false
         type: string
-        default: 'goodmap-e2e-tests'
+        default: '.'
       goodmap-path:
         description: 'Path to goodmap repository (leave empty to auto-detect based on calling-repo)'
         required: false
