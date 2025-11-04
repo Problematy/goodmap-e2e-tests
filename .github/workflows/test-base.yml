@@ -4,15 +4,12 @@ on:
       goodmap-version:
         required: true
         type: string
-        default: main
       goodmap-frontend-version:
         required: true
         type: string
-        default: main
       goodmap-e2e-version:
         required: false
         type: string
-        default: main
       calling-repo:
         description: 'Which repository is calling this workflow (goodmap-e2e-tests, goodmap, or goodmap-frontend)'
         required: false
@@ -35,7 +32,7 @@ on:
         default: 'goodmap-frontend'
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -61,7 +58,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: ${{ inputs.goodmap-path }}
-        repository: Problematy/goodmap
+        repository: problematy/goodmap
         submodules: 'true'
         ref: ${{ inputs.goodmap-version }}
 
@@ -69,7 +66,7 @@ jobs:
       if: inputs.calling-repo != 'goodmap-frontend'
       uses: actions/checkout@v4
       with:
-        repository: Problematy/goodmap-frontend
+        repository: problematy/goodmap-frontend
         ref: ${{ inputs.goodmap-frontend-version }}
         path: ${{ inputs.goodmap-frontend-path }}
 
