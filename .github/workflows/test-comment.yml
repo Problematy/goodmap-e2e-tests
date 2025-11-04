@@ -16,6 +16,7 @@ jobs:
     if: github.event.workflow_run.conclusion != 'cancelled'
     steps:
       - name: Download test results
+        id: download
         uses: actions/github-script@v7
         with:
           script: |
@@ -27,9 +28,11 @@ jobs:
 
             const matchArtifact = artifacts.data.artifacts.find(artifact => artifact.name === 'test-results');
             if (!matchArtifact) {
-              console.log('No test-results artifact found');
+              console.log('No test-results artifact found - workflow may have failed before uploading artifacts');
+              core.setOutput('artifact-found', 'false');
               return;
             }
+            core.setOutput('artifact-found', 'true');
 
             const download = await github.rest.actions.downloadArtifact({
               owner: context.repo.owner,
@@ -42,10 +45,12 @@ jobs:
             fs.writeFileSync('${{ github.workspace }}/test-results.zip', Buffer.from(download.data));
 
       - name: Extract artifacts
+        if: steps.download.outputs.artifact-found == 'true'
         run: |
           unzip -o test-results.zip || echo "No artifact to extract"
 
       - name: Read PR metadata
+        if: steps.download.outputs.artifact-found == 'true'
         id: pr-metadata
         run: |
           if [ -f tmp/pr-number.txt ]; then
