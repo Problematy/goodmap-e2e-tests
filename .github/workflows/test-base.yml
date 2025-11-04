@@ -97,9 +97,11 @@ jobs:
         CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_test_config.yml
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
+        cd ${{ github.workspace }}/${{ inputs.goodmap-frontend-path }} && make serve &
+        FRONTEND_PID=$!
         setsid make run-e2e-goodmap &
         SERVER_PID=$!
-        trap "kill -TERM -$SERVER_PID; wait $SERVER_PID 2>/dev/null || true" EXIT
+        trap "kill -TERM -$SERVER_PID -$FRONTEND_PID; wait $SERVER_PID $FRONTEND_PID 2>/dev/null || true" EXIT
         sleep 5
         make e2e-tests
 
@@ -113,8 +115,10 @@ jobs:
         CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_stress_test_config.yml
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
+        cd ${{ github.workspace }}/${{ inputs.goodmap-frontend-path }} && make serve &
+        FRONTEND_PID=$!
         setsid make run-e2e-stress-env &
         SERVER_PID=$!
-        trap "kill -TERM -$SERVER_PID; wait $SERVER_PID 2>/dev/null || true" EXIT
+        trap "kill -TERM -$SERVER_PID -$FRONTEND_PID; wait $SERVER_PID $FRONTEND_PID 2>/dev/null || true" EXIT
         sleep 5
         make e2e-stress-tests
