@@ -151,71 +151,23 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
         fi
 
-    - name: Comment PR with test results
+    - name: Save PR metadata for comment workflow
       if: always() && github.event.pull_request.number
-      uses: actions/github-script@v7
+      run: |
+        echo ${{ github.event.pull_request.number }} > /tmp/pr-number.txt
+        echo ${{ github.event.pull_request.head.sha }} > /tmp/pr-sha.txt
+
+    - name: Upload test results as artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const fs = require('fs');
-
-          // Extract only the final summary table
-          const extractSummary = (text) => {
-            const lines = text.split('\n');
-            const finishedIndex = lines.findIndex(l => l.includes('Run Finished'));
-            if (finishedIndex === -1) return 'No test results found';
-            const summaryLines = lines.slice(finishedIndex, finishedIndex + 20);
-            const resultLine = summaryLines.find(l => l.includes('All specs passed') || l.includes('passing'));
-            return summaryLines.slice(0, 15).join('\n') + '\n' + (resultLine || '');
-          };
-
-          let comment = '## 🧪 E2E Test Results\n\n';
-
-          if (fs.existsSync('/tmp/e2e-tests-output.txt')) {
-            const basicTests = fs.readFileSync('/tmp/e2e-tests-output.txt', 'utf8');
-            comment += '### Basic E2E Tests\n```\n' + extractSummary(basicTests) + '\n```\n\n';
-          }
-
-          if (fs.existsSync('/tmp/e2e-stress-tests-output.txt')) {
-            const stressTests = fs.readFileSync('/tmp/e2e-stress-tests-output.txt', 'utf8');
-            comment += '### Stress Tests\n```\n' + extractSummary(stressTests) + '\n```\n';
-          }
-
-          try {
-            console.log('Debug Info:');
-            console.log('- PR Number:', context.issue.number);
-            console.log('- Repository:', context.repo.owner + '/' + context.repo.repo);
-            console.log('- Event name:', context.eventName);
-            console.log('- Actor:', context.actor);
-
-            // Try to get current permissions
-            try {
-              const { data: permissions } = await github.rest.repos.getCollaboratorPermissionLevel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                username: context.actor
-              });
-              console.log('- Actor permissions:', permissions.permission);
-            } catch (e) {
-              console.log('- Could not check permissions:', e.message);
-            }
-
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-            console.log('✓ Successfully posted PR comment');
-          } catch (error) {
-            console.log('✗ Failed to post PR comment:', error.message);
-            console.log('Status:', error.status);
-            if (error.response?.headers) {
-              console.log('Accepted permissions:', error.response.headers['x-accepted-github-permissions']);
-            }
-            console.log('This may be due to insufficient permissions for workflow_call');
-            console.log('Test results are available in the workflow summary above');
-          }
+        name: test-results
+        path: |
+          /tmp/e2e-tests-output.txt
+          /tmp/e2e-stress-tests-output.txt
+          /tmp/pr-number.txt
+          /tmp/pr-sha.txt
+        retention-days: 1
 
     - name: Stop frontend server
       if: always()
