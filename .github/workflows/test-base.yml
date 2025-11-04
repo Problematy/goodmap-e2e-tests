@@ -155,6 +155,7 @@ jobs:
       if: always() && github.event.pull_request.number
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
 
@@ -181,8 +182,24 @@ jobs:
           }
 
           try {
-            console.log('Attempting to post comment to PR #' + context.issue.number);
-            console.log('Repository:', context.repo.owner + '/' + context.repo.repo);
+            console.log('Debug Info:');
+            console.log('- PR Number:', context.issue.number);
+            console.log('- Repository:', context.repo.owner + '/' + context.repo.repo);
+            console.log('- Event name:', context.eventName);
+            console.log('- Actor:', context.actor);
+
+            // Try to get current permissions
+            try {
+              const { data: permissions } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: context.actor
+              });
+              console.log('- Actor permissions:', permissions.permission);
+            } catch (e) {
+              console.log('- Could not check permissions:', e.message);
+            }
+
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -193,6 +210,9 @@ jobs:
           } catch (error) {
             console.log('✗ Failed to post PR comment:', error.message);
             console.log('Status:', error.status);
+            if (error.response?.headers) {
+              console.log('Accepted permissions:', error.response.headers['x-accepted-github-permissions']);
+            }
             console.log('This may be due to insufficient permissions for workflow_call');
             console.log('Test results are available in the workflow summary above');
           }
