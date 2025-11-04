@@ -187,7 +187,7 @@ jobs:
           echo "## ⚠️ E2E Stress Test Results" >> $GITHUB_STEP_SUMMARY
           echo "Performance data not found at: $PERF_FILE" >> $GITHUB_STEP_SUMMARY
           echo "Searching for file..." >> $GITHUB_STEP_SUMMARY
-          find ${{ github.workspace }} -name "stress-test-perf.json" 2>/dev/null || echo "No file found" >> $GITHUB_STEP_SUMMARY
+          find ${{ github.workspace }} -name "stress-test-perf.json" 2>/dev/null >> $GITHUB_STEP_SUMMARY || echo "No file found" >> $GITHUB_STEP_SUMMARY
         fi
 
     - name: Save PR metadata for comment workflow
