@@ -99,9 +99,9 @@ jobs:
         sleep 3
 
     - name: Start backend for e2e tests
-      working-directory: ${{ inputs.goodmap-path }}
+      working-directory: ${{ inputs.e2e-tests-path }}
       env:
-        CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_test_config.yml
+        CONFIG_PATH: e2e_test_config.yml
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
         make run-e2e-goodmap > /tmp/backend-e2e.log 2>&1 &
@@ -144,9 +144,9 @@ jobs:
       run: make e2e-stress-tests-generate-data
 
     - name: Start backend for stress tests
-      working-directory: ${{ inputs.goodmap-path }}
+      working-directory: ${{ inputs.e2e-tests-path }}
       env:
-        CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_stress_test_config.yml
+        CONFIG_PATH: e2e_stress_test_config.yml
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
         make run-e2e-stress-env > /tmp/backend-stress.log 2>&1 &
