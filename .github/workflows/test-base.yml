@@ -117,10 +117,8 @@ jobs:
       if: always()
       run: |
         if [ -f /tmp/e2e-tests-output.txt ]; then
-          echo "## E2E Test Results" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/e2e-tests-output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Basic E2E Tests Completed" >> $GITHUB_STEP_SUMMARY
+          echo "See workflow logs for details" >> $GITHUB_STEP_SUMMARY
         fi
 
     - name: Generate e2e stress test data
@@ -144,11 +142,45 @@ jobs:
     - name: Add stress test results to summary
       if: always()
       run: |
-        if [ -f /tmp/e2e-stress-tests-output.txt ]; then
-          echo "## E2E Stress Test Results" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/e2e-stress-tests-output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+        if [ -f ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json ]; then
+          echo "## 📊 E2E Stress Test Performance" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Parse and display performance metrics
+          AVG=$(jq -r '.avgTime' ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json)
+          MIN=$(jq -r '.minTime' ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json)
+          MAX=$(jq -r '.maxTime' ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json)
+          LIMIT=$(jq -r '.maxAllowed' ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json)
+          PASSED=$(jq -r '.passed' ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json)
+          RUNS=$(jq -r '.numRuns' ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json)
+
+          if [ "$PASSED" = "true" ]; then
+            echo "✅ **Status**: PASSED (${MAX}ms max < ${LIMIT}ms limit)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status**: FAILED (${MAX}ms max >= ${LIMIT}ms limit)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Average Time** | ${AVG}ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Minimum Time** | ${MIN}ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Maximum Time** | ${MAX}ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Number of Runs** | ${RUNS} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Individual run times
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>📈 Individual Run Times</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Run | Time (ms) |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|----------|" >> $GITHUB_STEP_SUMMARY
+          jq -r '.runTimes[] | "| Run \(.run) | \(.time)ms |"' ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## ⚠️ E2E Stress Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "Performance data not found. See workflow logs for details" >> $GITHUB_STEP_SUMMARY
         fi
 
     - name: Save PR metadata for comment workflow
