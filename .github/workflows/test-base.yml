@@ -106,12 +106,10 @@ jobs:
       run: |
         set -e
         make run-e2e-goodmap &
-        BACKEND_PID=$!
-        trap "kill $BACKEND_PID 2>/dev/null || true; wait" EXIT
         sleep 5
         make e2e-tests
-        kill $BACKEND_PID 2>/dev/null || true
-        wait
+        pkill -f "flask.*e2e_test_config" || true
+        sleep 1
 
     - name: Generate e2e stress test data
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -125,12 +123,10 @@ jobs:
       run: |
         set -e
         make run-e2e-stress-env &
-        BACKEND_PID=$!
-        trap "kill $BACKEND_PID 2>/dev/null || true; wait" EXIT
         sleep 5
         make e2e-stress-tests
-        kill $BACKEND_PID 2>/dev/null || true
-        wait
+        pkill -f "flask.*e2e_stress_test_config" || true
+        sleep 1
 
     - name: Stop frontend server
       if: always()
