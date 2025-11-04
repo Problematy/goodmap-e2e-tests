@@ -106,13 +106,26 @@ jobs:
         NO_COLOR: 1
       run: |
         set -e
+        # Start Flask backend from goodmap directory with correct config path
         cd ${{ github.workspace }}/${{ inputs.goodmap-path }}
-        make run-e2e-goodmap &
+        PYTHONPATH="${{ github.workspace }}/${{ inputs.goodmap-path }}" \
+          $(cd "${{ github.workspace }}/${{ inputs.goodmap-path }}" && poetry run which flask) \
+          --app "goodmap.goodmap:create_app(config_path='${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_test_config.yml')" \
+          run &
+        BACKEND_PID=$!
         sleep 5
+
+        # Run tests from e2e-tests directory
         cd ${{ github.workspace }}/${{ inputs.e2e-tests-path }}
         make e2e-tests | tee /tmp/e2e-tests-output.txt
+        TEST_EXIT_CODE=$?
+
+        # Cleanup backend
         pkill -f "flask.*e2e_test_config" || true
         sleep 1
+
+        # Exit with test exit code to fail step if tests failed
+        exit $TEST_EXIT_CODE
 
     - name: Add e2e test results to summary
       if: always()
@@ -134,13 +147,26 @@ jobs:
         NO_COLOR: 1
       run: |
         set -e
+        # Start Flask backend from goodmap directory with correct config path
         cd ${{ github.workspace }}/${{ inputs.goodmap-path }}
-        make run-e2e-stress-env &
+        PYTHONPATH="${{ github.workspace }}/${{ inputs.goodmap-path }}" \
+          $(cd "${{ github.workspace }}/${{ inputs.goodmap-path }}" && poetry run which flask) \
+          --app "goodmap.goodmap:create_app(config_path='${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_stress_test_config.yml')" \
+          run &
+        BACKEND_PID=$!
         sleep 5
+
+        # Run tests from e2e-tests directory
         cd ${{ github.workspace }}/${{ inputs.e2e-tests-path }}
         make e2e-stress-tests | tee /tmp/e2e-stress-tests-output.txt
+        TEST_EXIT_CODE=$?
+
+        # Cleanup backend
         pkill -f "flask.*e2e_stress_test_config" || true
         sleep 1
+
+        # Exit with test exit code to fail step if tests failed
+        exit $TEST_EXIT_CODE
 
     - name: Add stress test results to summary
       if: always()
