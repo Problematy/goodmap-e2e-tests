@@ -91,6 +91,13 @@ jobs:
       working-directory: ${{ inputs.e2e-tests-path }}
       run: npm install
 
+    - name: Start frontend server
+      working-directory: ${{ inputs.goodmap-frontend-path }}
+      run: |
+        make serve &
+        echo $! > /tmp/frontend.pid
+        sleep 3
+
     - name: Run e2e tests
       working-directory: ${{ inputs.e2e-tests-path }}
       env:
@@ -98,15 +105,12 @@ jobs:
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
         set -e
-        cd ${{ github.workspace }}/${{ inputs.goodmap-frontend-path }} && make serve &
-        FRONTEND_PID=$!
-        cd ${{ github.workspace }}/${{ inputs.e2e-tests-path }}
         make run-e2e-goodmap &
         BACKEND_PID=$!
-        trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true; wait" EXIT
+        trap "kill $BACKEND_PID 2>/dev/null || true; wait" EXIT
         sleep 5
         make e2e-tests
-        kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+        kill $BACKEND_PID 2>/dev/null || true
         wait
 
     - name: Generate e2e stress test data
@@ -120,13 +124,17 @@ jobs:
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
         set -e
-        cd ${{ github.workspace }}/${{ inputs.goodmap-frontend-path }} && make serve &
-        FRONTEND_PID=$!
-        cd ${{ github.workspace }}/${{ inputs.e2e-tests-path }}
         make run-e2e-stress-env &
         BACKEND_PID=$!
-        trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true; wait" EXIT
+        trap "kill $BACKEND_PID 2>/dev/null || true; wait" EXIT
         sleep 5
         make e2e-stress-tests
-        kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+        kill $BACKEND_PID 2>/dev/null || true
         wait
+
+    - name: Stop frontend server
+      if: always()
+      run: |
+        if [ -f /tmp/frontend.pid ]; then
+          kill $(cat /tmp/frontend.pid) 2>/dev/null || true
+        fi
