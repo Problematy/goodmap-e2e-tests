@@ -107,13 +107,11 @@ jobs:
         make run-e2e-goodmap > /tmp/backend-e2e.log 2>&1 &
         echo $! > /tmp/backend-e2e.pid
         sleep 5
-        # Check if backend started successfully
         if ! kill -0 $(cat /tmp/backend-e2e.pid) 2>/dev/null; then
-          echo "Backend failed to start. Log:"
+          echo "Backend failed to start:"
           cat /tmp/backend-e2e.log
           exit 1
         fi
-        echo "Backend started with PID $(cat /tmp/backend-e2e.pid)"
 
     - name: Run e2e tests
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -152,13 +150,11 @@ jobs:
         make run-e2e-stress-env > /tmp/backend-stress.log 2>&1 &
         echo $! > /tmp/backend-stress.pid
         sleep 5
-        # Check if backend started successfully
         if ! kill -0 $(cat /tmp/backend-stress.pid) 2>/dev/null; then
-          echo "Backend failed to start. Log:"
+          echo "Backend failed to start:"
           cat /tmp/backend-stress.log
           exit 1
         fi
-        echo "Backend started with PID $(cat /tmp/backend-stress.pid)"
 
     - name: Run e2e stress tests
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -219,9 +215,7 @@ jobs:
           echo "</details>" >> $GITHUB_STEP_SUMMARY
         else
           echo "## ⚠️ E2E Stress Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "Performance data not found at: $PERF_FILE" >> $GITHUB_STEP_SUMMARY
-          echo "Searching for file..." >> $GITHUB_STEP_SUMMARY
-          find ${{ github.workspace }} -name "stress-test-perf.json" 2>/dev/null >> $GITHUB_STEP_SUMMARY || echo "No file found" >> $GITHUB_STEP_SUMMARY
+          echo "Performance data not found" >> $GITHUB_STEP_SUMMARY
         fi
 
     - name: Save PR metadata for comment workflow
