@@ -15,13 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion != 'cancelled'
     steps:
-      - name: Debug workflow_run event
-        run: |
-          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
-          echo "Workflow name: ${{ github.event.workflow_run.name }}"
-          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
-          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
-          echo "Event: ${{ github.event.workflow_run.event }}"
       - name: Download test results
         uses: actions/github-script@v7
         with:
