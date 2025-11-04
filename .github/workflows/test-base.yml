@@ -106,8 +106,10 @@ jobs:
         NO_COLOR: 1
       run: |
         set -e
+        cd ${{ github.workspace }}/${{ inputs.goodmap-path }}
         make run-e2e-goodmap &
         sleep 5
+        cd ${{ github.workspace }}/${{ inputs.e2e-tests-path }}
         make e2e-tests | tee /tmp/e2e-tests-output.txt
         pkill -f "flask.*e2e_test_config" || true
         sleep 1
@@ -132,8 +134,10 @@ jobs:
         NO_COLOR: 1
       run: |
         set -e
+        cd ${{ github.workspace }}/${{ inputs.goodmap-path }}
         make run-e2e-stress-env &
         sleep 5
+        cd ${{ github.workspace }}/${{ inputs.e2e-tests-path }}
         make e2e-stress-tests | tee /tmp/e2e-stress-tests-output.txt
         pkill -f "flask.*e2e_stress_test_config" || true
         sleep 1
