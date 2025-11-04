@@ -107,9 +107,19 @@ jobs:
         set -e
         make run-e2e-goodmap &
         sleep 5
-        make e2e-tests
+        make e2e-tests | tee /tmp/e2e-tests-output.txt
         pkill -f "flask.*e2e_test_config" || true
         sleep 1
+
+    - name: Add e2e test results to summary
+      if: always()
+      run: |
+        if [ -f /tmp/e2e-tests-output.txt ]; then
+          echo "## E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/e2e-tests-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
 
     - name: Generate e2e stress test data
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -124,9 +134,44 @@ jobs:
         set -e
         make run-e2e-stress-env &
         sleep 5
-        make e2e-stress-tests
+        make e2e-stress-tests | tee /tmp/e2e-stress-tests-output.txt
         pkill -f "flask.*e2e_stress_test_config" || true
         sleep 1
+
+    - name: Add stress test results to summary
+      if: always()
+      run: |
+        if [ -f /tmp/e2e-stress-tests-output.txt ]; then
+          echo "## E2E Stress Test Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/e2e-stress-tests-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Comment PR with test results
+      if: always() && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let comment = '## 🧪 E2E Test Results\n\n';
+
+          if (fs.existsSync('/tmp/e2e-tests-output.txt')) {
+            const basicTests = fs.readFileSync('/tmp/e2e-tests-output.txt', 'utf8');
+            comment += '### Basic E2E Tests\n```\n' + basicTests + '\n```\n\n';
+          }
+
+          if (fs.existsSync('/tmp/e2e-stress-tests-output.txt')) {
+            const stressTests = fs.readFileSync('/tmp/e2e-stress-tests-output.txt', 'utf8');
+            comment += '### Stress Tests\n```\n' + stressTests + '\n```\n';
+          }
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
 
     - name: Stop frontend server
       if: always()
