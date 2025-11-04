@@ -180,12 +180,22 @@ jobs:
             comment += '### Stress Tests\n```\n' + extractSummary(stressTests) + '\n```\n';
           }
 
-          await github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+          try {
+            console.log('Attempting to post comment to PR #' + context.issue.number);
+            console.log('Repository:', context.repo.owner + '/' + context.repo.repo);
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            console.log('✓ Successfully posted PR comment');
+          } catch (error) {
+            console.log('✗ Failed to post PR comment:', error.message);
+            console.log('Status:', error.status);
+            console.log('This may be due to insufficient permissions for workflow_call');
+            console.log('Test results are available in the workflow summary above');
+          }
 
     - name: Stop frontend server
       if: always()
