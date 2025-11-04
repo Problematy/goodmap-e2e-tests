@@ -152,7 +152,7 @@ jobs:
         fi
 
     - name: Comment PR with test results
-      if: always() && github.event_name == 'pull_request'
+      if: always() && github.event.pull_request.number
       uses: actions/github-script@v7
       with:
         script: |
@@ -189,12 +189,19 @@ jobs:
             comment += '### Stress Tests\n```\n' + summary + '\n```\n';
           }
 
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+          try {
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            console.log('Successfully posted PR comment');
+          } catch (error) {
+            console.log('Failed to post PR comment:', error.message);
+            console.log('This is expected for workflow_call triggers from other repos');
+            console.log('Test results are still available in the step summary');
+          }
 
     - name: Stop frontend server
       if: always()
