@@ -86,12 +86,16 @@ jobs:
             if (fs.existsSync('cypress/results/stress-test-perf.json')) {
               const perfData = JSON.parse(fs.readFileSync('cypress/results/stress-test-perf.json', 'utf8'));
 
-              comment += '#### 📊 Performance Metrics\n\n';
+              comment += '## 📊 E2E Stress Test Performance\n\n';
 
-              // Summary stats
-              const status = perfData.passed ? '✅' : '❌';
-              comment += `${status} **Result**: ${perfData.maxTime}ms max (limit: ${perfData.maxAllowed}ms)\n\n`;
+              // Status
+              if (perfData.passed) {
+                comment += `✅ **Status**: PASSED (${perfData.maxTime}ms max < ${perfData.maxAllowed}ms limit)\n\n`;
+              } else {
+                comment += `❌ **Status**: FAILED (${perfData.maxTime}ms max >= ${perfData.maxAllowed}ms limit)\n\n`;
+              }
 
+              // Summary table
               comment += '| Metric | Value |\n';
               comment += '|--------|-------|\n';
               comment += `| **Average Time** | ${perfData.avgTime}ms |\n`;
@@ -107,6 +111,9 @@ jobs:
                 comment += `| Run ${run.run} | ${run.time}ms |\n`;
               });
               comment += '\n</details>\n';
+            } else {
+              comment += '## ⚠️ E2E Stress Test Results\n\n';
+              comment += 'Performance data not found. See workflow logs for details.\n';
             }
 
             // Post comment to PR
