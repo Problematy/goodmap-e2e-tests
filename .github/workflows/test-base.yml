@@ -97,13 +97,17 @@ jobs:
         CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_test_config.yml
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
+        set -e
         cd ${{ github.workspace }}/${{ inputs.goodmap-frontend-path }} && make serve &
         FRONTEND_PID=$!
+        cd ${{ github.workspace }}/${{ inputs.e2e-tests-path }}
         make run-e2e-goodmap &
         BACKEND_PID=$!
         trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true; wait" EXIT
         sleep 5
         make e2e-tests
+        kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+        wait
 
     - name: Generate e2e stress test data
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -115,10 +119,14 @@ jobs:
         CONFIG_PATH: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_stress_test_config.yml
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
+        set -e
         cd ${{ github.workspace }}/${{ inputs.goodmap-frontend-path }} && make serve &
         FRONTEND_PID=$!
+        cd ${{ github.workspace }}/${{ inputs.e2e-tests-path }}
         make run-e2e-stress-env &
         BACKEND_PID=$!
         trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true; wait" EXIT
         sleep 5
         make e2e-stress-tests
+        kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+        wait
