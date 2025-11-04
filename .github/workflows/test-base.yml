@@ -161,17 +161,10 @@ jobs:
           // Extract only the final summary table
           const extractSummary = (text) => {
             const lines = text.split('\n');
-
-            // Find "Run Finished" section
             const finishedIndex = lines.findIndex(l => l.includes('Run Finished'));
             if (finishedIndex === -1) return 'No test results found';
-
-            // Get the summary table (next ~15 lines after "Run Finished")
             const summaryLines = lines.slice(finishedIndex, finishedIndex + 20);
-
-            // Find the "All specs passed" or results line
             const resultLine = summaryLines.find(l => l.includes('All specs passed') || l.includes('passing'));
-
             return summaryLines.slice(0, 15).join('\n') + '\n' + (resultLine || '');
           };
 
@@ -179,29 +172,20 @@ jobs:
 
           if (fs.existsSync('/tmp/e2e-tests-output.txt')) {
             const basicTests = fs.readFileSync('/tmp/e2e-tests-output.txt', 'utf8');
-            const summary = extractSummary(basicTests);
-            comment += '### Basic E2E Tests\n```\n' + summary + '\n```\n\n';
+            comment += '### Basic E2E Tests\n```\n' + extractSummary(basicTests) + '\n```\n\n';
           }
 
           if (fs.existsSync('/tmp/e2e-stress-tests-output.txt')) {
             const stressTests = fs.readFileSync('/tmp/e2e-stress-tests-output.txt', 'utf8');
-            const summary = extractSummary(stressTests);
-            comment += '### Stress Tests\n```\n' + summary + '\n```\n';
+            comment += '### Stress Tests\n```\n' + extractSummary(stressTests) + '\n```\n';
           }
 
-          try {
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-            console.log('Successfully posted PR comment');
-          } catch (error) {
-            console.log('Failed to post PR comment:', error.message);
-            console.log('This is expected for workflow_call triggers from other repos');
-            console.log('Test results are still available in the step summary');
-          }
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
 
     - name: Stop frontend server
       if: always()
