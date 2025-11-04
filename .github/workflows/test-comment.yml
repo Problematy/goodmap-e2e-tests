@@ -13,8 +13,15 @@ permissions:
 jobs:
   comment:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion != 'cancelled' }}
+    if: github.event.workflow_run.conclusion != 'cancelled'
     steps:
+      - name: Debug workflow_run event
+        run: |
+          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
+          echo "Workflow name: ${{ github.event.workflow_run.name }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Event: ${{ github.event.workflow_run.event }}"
       - name: Download test results
         uses: actions/github-script@v7
         with:
@@ -92,15 +99,31 @@ jobs:
             comment += `📊 [View full workflow run](${runUrl})\n`;
             comment += `🔗 Commit: \`${prSha.substring(0, 7)}\`\n\n`;
 
-            // Add test results if files exist
-            if (fs.existsSync('e2e-tests-output.txt')) {
-              const basicTests = fs.readFileSync('e2e-tests-output.txt', 'utf8');
-              comment += '### Basic E2E Tests\n```\n' + extractSummary(basicTests) + '\n```\n\n';
-            }
+            // Add detailed performance metrics if available
+            if (fs.existsSync('stress-test-perf.json')) {
+              const perfData = JSON.parse(fs.readFileSync('stress-test-perf.json', 'utf8'));
 
-            if (fs.existsSync('e2e-stress-tests-output.txt')) {
-              const stressTests = fs.readFileSync('e2e-stress-tests-output.txt', 'utf8');
-              comment += '### Stress Tests\n```\n' + extractSummary(stressTests) + '\n```\n';
+              comment += '#### 📊 Performance Metrics\n\n';
+
+              // Summary stats
+              const status = perfData.passed ? '✅' : '❌';
+              comment += `${status} **Result**: ${perfData.maxTime}ms max (limit: ${perfData.maxAllowed}ms)\n\n`;
+
+              comment += '| Metric | Value |\n';
+              comment += '|--------|-------|\n';
+              comment += `| **Average Time** | ${perfData.avgTime}ms |\n`;
+              comment += `| **Minimum Time** | ${perfData.minTime}ms |\n`;
+              comment += `| **Maximum Time** | ${perfData.maxTime}ms |\n`;
+              comment += `| **Number of Runs** | ${perfData.numRuns} |\n\n`;
+
+              // Individual run times
+              comment += '<details>\n<summary>📈 Individual Run Times</summary>\n\n';
+              comment += '| Run | Time (ms) |\n';
+              comment += '|-----|----------|\n';
+              perfData.runTimes.forEach(run => {
+                comment += `| Run ${run.run} | ${run.time}ms |\n`;
+              });
+              comment += '\n</details>\n';
             }
 
             // Post comment to PR
