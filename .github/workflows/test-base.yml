@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       goodmap-e2e-version:
-        required: false
+        required: true
         type: string
       calling-repo:
         description: 'Which repository is calling this workflow (goodmap-e2e-tests, goodmap, or goodmap-frontend)'
