@@ -104,7 +104,7 @@ jobs:
         sleep 3
 
     - name: Start backend for e2e tests
-      working-directory: ${{ inputs.e2e-tests-path }}
+      working-directory: ${{ inputs.goodmap-path }}
       env:
         CONFIG_PATH: ${{ inputs.goodmap-config-path }}
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
