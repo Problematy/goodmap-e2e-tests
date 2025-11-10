@@ -109,7 +109,7 @@ jobs:
         CONFIG_PATH: ${{ inputs.goodmap-config-path }}
         GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
       run: |
-        make run-e2e-goodmap > /tmp/backend-e2e.log 2>&1 &
+        make run-e2e-env > /tmp/backend-e2e.log 2>&1 &
         echo $! > /tmp/backend-e2e.pid
         sleep 5
         # Check if backend started successfully
