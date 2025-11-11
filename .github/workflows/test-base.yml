@@ -104,21 +104,14 @@ jobs:
         sleep 3
 
     - name: Start backend for e2e tests
-      working-directory: ${{ inputs.goodmap-path }}
-      env:
-        CONFIG_PATH: ${{ inputs.goodmap-config-path }}
-        GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
-      run: |
-        make run-e2e-env > /tmp/backend-e2e.log 2>&1 &
-        echo $! > /tmp/backend-e2e.pid
-        sleep 5
-        # Check if backend started successfully
-        if ! kill -0 $(cat /tmp/backend-e2e.pid) 2>/dev/null; then
-          echo "Backend failed to start. Log:"
-          cat /tmp/backend-e2e.log
-          exit 1
-        fi
-        echo "Backend started with PID $(cat /tmp/backend-e2e.pid)"
+      uses: ./.github/actions/start-backend
+      with:
+        config-path: ${{ inputs.goodmap-config-path }}
+        goodmap-path: ${{ github.workspace }}/${{ inputs.goodmap-path }}
+        working-directory: ${{ inputs.goodmap-path }}
+        make-target: run-e2e-env
+        log-file: /tmp/backend-e2e.log
+        pid-file: /tmp/backend-e2e.pid
 
     - name: Run e2e tests
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -129,12 +122,10 @@ jobs:
 
     - name: Stop backend for e2e tests
       if: always()
-      run: |
-        if [ -f /tmp/backend-e2e.pid ]; then
-          kill $(cat /tmp/backend-e2e.pid) 2>/dev/null || true
-        fi
-        pkill -f "flask.*e2e_test_config" || true
-        sleep 1
+      uses: ./.github/actions/stop-backend
+      with:
+        pid-file: /tmp/backend-e2e.pid
+        config-pattern: "flask.*e2e_test_config"
 
     - name: Add e2e test results to summary
       if: always()
@@ -149,21 +140,14 @@ jobs:
       run: make e2e-stress-tests-generate-data
 
     - name: Start backend for stress tests
-      working-directory: ${{ inputs.e2e-tests-path }}
-      env:
-        CONFIG_PATH: e2e_stress_test_config.yml
-        GOODMAP_PATH: ${{ github.workspace }}/${{ inputs.goodmap-path }}
-      run: |
-        make run-e2e-stress-env > /tmp/backend-stress.log 2>&1 &
-        echo $! > /tmp/backend-stress.pid
-        sleep 5
-        # Check if backend started successfully
-        if ! kill -0 $(cat /tmp/backend-stress.pid) 2>/dev/null; then
-          echo "Backend failed to start. Log:"
-          cat /tmp/backend-stress.log
-          exit 1
-        fi
-        echo "Backend started with PID $(cat /tmp/backend-stress.pid)"
+      uses: ./.github/actions/start-backend
+      with:
+        config-path: e2e_stress_test_config.yml
+        goodmap-path: ${{ github.workspace }}/${{ inputs.goodmap-path }}
+        working-directory: ${{ inputs.e2e-tests-path }}
+        make-target: run-e2e-stress-env
+        log-file: /tmp/backend-stress.log
+        pid-file: /tmp/backend-stress.pid
 
     - name: Run e2e stress tests
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -174,64 +158,24 @@ jobs:
 
     - name: Stop backend for stress tests
       if: always()
-      run: |
-        if [ -f /tmp/backend-stress.pid ]; then
-          kill $(cat /tmp/backend-stress.pid) 2>/dev/null || true
-        fi
-        pkill -f "flask.*e2e_stress_test_config" || true
-        sleep 1
+      uses: ./.github/actions/stop-backend
+      with:
+        pid-file: /tmp/backend-stress.pid
+        config-pattern: "flask.*e2e_stress_test_config"
 
     - name: Add stress test results to summary
       if: always()
+      working-directory: ${{ inputs.e2e-tests-path }}
       run: |
         PERF_FILE="${{ github.workspace }}/${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json"
-
-        if [ -f "$PERF_FILE" ]; then
-          echo "## 📊 E2E Stress Test Performance" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Parse and display performance metrics
-          AVG=$(jq -r '.avgTime' "$PERF_FILE")
-          MIN=$(jq -r '.minTime' "$PERF_FILE")
-          MAX=$(jq -r '.maxTime' "$PERF_FILE")
-          LIMIT=$(jq -r '.maxAllowed' "$PERF_FILE")
-          PASSED=$(jq -r '.passed' "$PERF_FILE")
-          RUNS=$(jq -r '.numRuns' "$PERF_FILE")
-
-          if [ "$PASSED" = "true" ]; then
-            echo "✅ **Status**: PASSED (${MAX}ms max < ${LIMIT}ms limit)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **Status**: FAILED (${MAX}ms max >= ${LIMIT}ms limit)" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Average Time** | ${AVG}ms |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Minimum Time** | ${MIN}ms |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Maximum Time** | ${MAX}ms |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Number of Runs** | ${RUNS} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Individual run times
-          echo "<details>" >> $GITHUB_STEP_SUMMARY
-          echo "<summary>📈 Individual Run Times</summary>" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Run | Time (ms) |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|----------|" >> $GITHUB_STEP_SUMMARY
-          jq -r '.runTimes[] | "| Run \(.run) | \(.time)ms |"' "$PERF_FILE" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "</details>" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "## ⚠️ E2E Stress Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "Performance data not found" >> $GITHUB_STEP_SUMMARY
-        fi
+        node .github/scripts/generate-perf-summary.js "$PERF_FILE" --format=github >> $GITHUB_STEP_SUMMARY
 
     - name: Save PR metadata for comment workflow
       if: always() && github.event.pull_request.number
       run: |
         echo ${{ github.event.pull_request.number }} > /tmp/pr-number.txt
         echo ${{ github.event.pull_request.head.sha }} > /tmp/pr-sha.txt
+        echo "${{ inputs.e2e-tests-path }}" > /tmp/e2e-tests-path.txt
 
     - name: Upload test results as artifacts
       if: always()
@@ -243,6 +187,7 @@ jobs:
           /tmp/e2e-stress-tests-output.txt
           /tmp/pr-number.txt
           /tmp/pr-sha.txt
+          /tmp/e2e-tests-path.txt
           ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json
         retention-days: 1
         if-no-files-found: ignore

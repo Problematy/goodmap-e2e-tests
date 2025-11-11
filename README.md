@@ -75,9 +75,150 @@ Generate stress test data:
     ```
 
 ### Continuous Integration
+
 The repository includes GitHub Actions workflows to automatically run the tests:
 
 - `.github/workflows/test.yml`: Triggered on pull requests and pushes to main
-- `.github/workflows/test-base.yml`: Base workflow called by test.yml
+- `.github/workflows/test-base.yml`: Reusable workflow that can be called by other repositories
+- `.github/workflows/test-comment.yml`: Posts test results as PR comments
+
+## Using as a Reusable Workflow
+
+Other repositories (e.g., `goodmap`, `goodmap-frontend`) can trigger E2E tests by calling the reusable workflow:
+
+```yaml
+name: Run E2E Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  e2e-tests:
+    uses: problematy/goodmap-e2e-tests/.github/workflows/test-base.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit
+    with:
+      # Version of goodmap to test (branch, tag, or SHA)
+      goodmap-version: 'main'
+
+      # Version of goodmap-frontend to test
+      goodmap-frontend-version: 'main'
+
+      # Version of e2e-tests to use
+      goodmap-e2e-version: 'main'
+
+      # Which repository is calling (goodmap, goodmap-frontend, or goodmap-e2e-tests)
+      calling-repo: 'goodmap'
+
+      # Optional: Custom paths (defaults work for most cases)
+      # e2e-tests-path: 'goodmap-e2e-tests'
+      # goodmap-path: 'goodmap'
+      # goodmap-frontend-path: 'goodmap-frontend'
+
+      # Optional: Custom config file
+      # goodmap-config-path: 'e2e_test_config.yml'
+```
+
+### Workflow Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `goodmap-version` | Yes | - | Git ref (branch/tag/SHA) of goodmap to test |
+| `goodmap-frontend-version` | Yes | - | Git ref of goodmap-frontend to test |
+| `goodmap-e2e-version` | Yes | - | Git ref of e2e-tests to use |
+| `calling-repo` | No | - | Repository calling the workflow (determines checkout behavior) |
+| `e2e-tests-path` | No | `.` | Path where e2e-tests will be checked out |
+| `goodmap-path` | No | `goodmap` | Path where goodmap will be checked out |
+| `goodmap-frontend-path` | No | `goodmap-frontend` | Path where goodmap-frontend will be checked out |
+| `goodmap-config-path` | No | `e2e_test_config.yml` | Config file for goodmap E2E tests |
+
+### Example: Testing a goodmap PR
+
+When a PR is created in the `goodmap` repository, automatically test it with the latest frontend:
+
+```yaml
+jobs:
+  e2e-tests:
+    uses: problematy/goodmap-e2e-tests/.github/workflows/test-base.yml@main
+    with:
+      goodmap-version: ${{ github.sha }}          # Test this PR
+      goodmap-frontend-version: 'main'             # Latest frontend
+      goodmap-e2e-version: 'main'                  # Latest tests
+      calling-repo: 'goodmap'
+```
+
+## Reusable Components
+
+### Composite Actions
+
+The repository provides reusable composite actions for common tasks:
+
+#### Start Backend Action
+`.github/actions/start-backend/action.yml`
+
+Starts the Goodmap Flask backend with automatic health checking.
+
+**Inputs:**
+- `config-path`: Path to Goodmap configuration file
+- `goodmap-path`: Path to Goodmap repository
+- `working-directory`: Working directory to run make from
+- `make-target`: Make target to run (e.g., `run-e2e-env`)
+- `log-file`: Path to store backend logs
+- `pid-file`: Path to store backend PID
+- `startup-wait-seconds`: Seconds to wait for startup (default: 5)
+
+**Example:**
+```yaml
+- uses: ./.github/actions/start-backend
+  with:
+    config-path: e2e_test_config.yml
+    goodmap-path: ${{ github.workspace }}/goodmap
+    working-directory: goodmap
+    make-target: run-e2e-env
+    log-file: /tmp/backend.log
+    pid-file: /tmp/backend.pid
+```
+
+#### Stop Backend Action
+`.github/actions/stop-backend/action.yml`
+
+Gracefully stops the Goodmap Flask backend.
+
+**Inputs:**
+- `pid-file`: Path to the PID file
+- `config-pattern`: Pattern to match flask process (e.g., `flask.*e2e_test_config`)
+
+**Example:**
+```yaml
+- uses: ./.github/actions/stop-backend
+  if: always()
+  with:
+    pid-file: /tmp/backend.pid
+    config-pattern: "flask.*e2e_test_config"
+```
+
+### Performance Summary Script
+
+`.github/scripts/generate-perf-summary.js`
+
+Generates performance summaries from stress test results. Supports both GitHub Step Summaries and PR comment formats.
+
+**Usage:**
+```bash
+node .github/scripts/generate-perf-summary.js <perf-json-path> [--format=github|pr-comment]
+```
+
+**Example:**
+```yaml
+- name: Add performance summary
+  run: |
+    node .github/scripts/generate-perf-summary.js \
+      cypress/results/stress-test-perf.json \
+      --format=github >> $GITHUB_STEP_SUMMARY
+```
 
 

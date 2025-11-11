@@ -1,0 +1,21 @@
+name: 'Stop Goodmap Backend'
+description: 'Stops the Goodmap Flask backend'
+inputs:
+  pid-file:
+    description: 'Path to the PID file'
+    required: true
+  config-pattern:
+    description: 'Pattern to match flask process (e.g., flask.*e2e_test_config)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Stop backend
+      shell: bash
+      run: |
+        if [ -f ${{ inputs.pid-file }} ]; then
+          kill $(cat ${{ inputs.pid-file }}) 2>/dev/null || true
+        fi
+        pkill -f "${{ inputs.config-pattern }}" || true
+        sleep 1
