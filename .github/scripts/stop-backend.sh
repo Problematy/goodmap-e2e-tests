@@ -22,6 +22,8 @@ if [ -f "$PID_FILE" ]; then
   if kill -0 "$PID" 2>/dev/null; then
     echo "Stopping backend with PID $PID"
     kill "$PID" 2>/dev/null || true
+    # Wait a moment for clean shutdown
+    sleep 0.5
   else
     echo "Process $PID is not running"
   fi
@@ -30,7 +32,8 @@ else
 fi
 
 # Kill by pattern as a fallback
-if pkill -f "$CONFIG_PATTERN" 2>/dev/null; then
+KILLED_COUNT=$(pkill -f "$CONFIG_PATTERN" 2>/dev/null && echo "yes" || echo "no")
+if [ "$KILLED_COUNT" = "yes" ]; then
   echo "Stopped additional processes matching pattern: $CONFIG_PATTERN"
 fi
 

@@ -100,7 +100,9 @@ jobs:
       working-directory: ${{ inputs.goodmap-frontend-path }}
       run: |
         make serve &
-        echo $! > /tmp/frontend.pid
+        FRONTEND_PID=$!
+        echo $FRONTEND_PID > /tmp/frontend.pid
+        disown $FRONTEND_PID
         sleep 3
 
     - name: Start backend for e2e tests
