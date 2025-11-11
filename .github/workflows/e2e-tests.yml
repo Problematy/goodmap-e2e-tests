@@ -7,9 +7,6 @@ on:
       goodmap-frontend-version:
         required: true
         type: string
-      goodmap-e2e-version:
-        required: true
-        type: string
       calling-repo:
         description: 'Which repository is calling this workflow (goodmap-e2e-tests, goodmap, or goodmap-frontend)'
         required: false
@@ -49,28 +46,37 @@ jobs:
       with:
         submodules: ${{ inputs.calling-repo == 'goodmap' && 'true' || 'false' }}
 
+    - name: Determine e2e-tests repository and ref
+      if: inputs.calling-repo != 'goodmap-e2e-tests'
+      id: determine-e2e-ref
+      run: |
+        # Parse github.workflow_ref to extract repository and ref
+        # Format: owner/repo/.github/workflows/workflow.yml@ref
+        WORKFLOW_REF="${{ github.workflow_ref }}"
+        echo "Full workflow ref: $WORKFLOW_REF"
+
+        # Extract repository (everything before /.github/)
+        REPO=$(echo "$WORKFLOW_REF" | sed 's|/\.github/.*||')
+        echo "Repository: $REPO"
+
+        # Extract ref (everything after @)
+        REF=$(echo "$WORKFLOW_REF" | sed 's|.*@||')
+        echo "Raw ref: $REF"
+
+        # Remove refs/heads/ or refs/tags/ prefix if present
+        REF=$(echo "$REF" | sed 's|^refs/heads/||' | sed 's|^refs/tags/||')
+        echo "Cleaned ref: $REF"
+
+        echo "repository=$REPO" >> $GITHUB_OUTPUT
+        echo "ref=$REF" >> $GITHUB_OUTPUT
+
     - name: Checkout e2e-tests repository
       if: inputs.calling-repo != 'goodmap-e2e-tests'
       uses: actions/checkout@v4
       with:
         path: ${{ inputs.e2e-tests-path }}
-        repository: problematy/goodmap-e2e-tests
-        ref: ${{ inputs.goodmap-e2e-version }}
-
-    - name: Debug e2e-tests checkout
-      if: inputs.calling-repo != 'goodmap-e2e-tests'
-      run: |
-        echo "=== Listing e2e-tests checkout directory ==="
-        ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/" || echo "Directory not found"
-        echo ""
-        echo "=== Checking for .github directory ==="
-        ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/" || echo ".github not found"
-        echo ""
-        echo "=== Checking for scripts directory ==="
-        ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/" || echo "scripts not found"
-        echo ""
-        echo "=== Current git ref in e2e-tests ==="
-        cd "${{ github.workspace }}/${{ inputs.e2e-tests-path }}" && git log --oneline -1 || echo "Not a git repo"
+        repository: ${{ steps.determine-e2e-ref.outputs.repository }}
+        ref: ${{ steps.determine-e2e-ref.outputs.ref }}
 
     - name: Checkout goodmap repository
       if: inputs.calling-repo != 'goodmap'

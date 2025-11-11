@@ -96,7 +96,7 @@ on:
 
 jobs:
   e2e-tests:
-    uses: problematy/goodmap-e2e-tests/.github/workflows/test-base.yml@main
+    uses: problematy/goodmap-e2e-tests/.github/workflows/e2e-tests.yml@main
     permissions:
       contents: read
       pull-requests: write
@@ -107,9 +107,6 @@ jobs:
 
       # Version of goodmap-frontend to test
       goodmap-frontend-version: 'main'
-
-      # Version of e2e-tests to use
-      goodmap-e2e-version: 'main'
 
       # Which repository is calling (goodmap, goodmap-frontend, or goodmap-e2e-tests)
       calling-repo: 'goodmap'
@@ -129,14 +126,13 @@ jobs:
 |-----------|----------|---------|-------------|
 | `goodmap-version` | Yes | - | Git ref (branch/tag/SHA) of goodmap to test |
 | `goodmap-frontend-version` | Yes | - | Git ref of goodmap-frontend to test |
-| `goodmap-e2e-version` | Yes | - | Git ref of e2e-tests to use |
 | `calling-repo` | No | - | Repository calling the workflow (determines checkout behavior) |
 | `e2e-tests-path` | No | `.` | Path where e2e-tests will be checked out |
 | `goodmap-path` | No | `goodmap` | Path where goodmap will be checked out |
 | `goodmap-frontend-path` | No | `goodmap-frontend` | Path where goodmap-frontend will be checked out |
 | `goodmap-config-path` | No | `e2e_test_config.yml` | Config file for goodmap E2E tests |
 
-**Note:** The `e2e-tests-path` parameter is critical for cross-repository usage. It ensures that composite actions and scripts are referenced from the correct repository location. When calling from another repository, this typically should be set to `goodmap-e2e-tests`.
+**Note:** The workflow automatically detects which version of e2e-tests to use based on the `@ref` specified in the `uses:` statement. For example, if you call `uses: problematy/goodmap-e2e-tests/.github/workflows/e2e-tests.yml@changes2`, it will checkout the `changes2` branch. This also works with forks: `uses: raven-wing/goodmap-e2e-tests/.github/workflows/e2e-tests.yml@my-feature` will checkout from the fork.
 
 ### Example: Testing a goodmap PR
 
@@ -145,7 +141,7 @@ When a PR is created in the `goodmap` repository, automatically test it with the
 ```yaml
 jobs:
   e2e-tests:
-    uses: problematy/goodmap-e2e-tests/.github/workflows/test-base.yml@main
+    uses: problematy/goodmap-e2e-tests/.github/workflows/e2e-tests.yml@main
     permissions:
       contents: read
       pull-requests: write
@@ -153,23 +149,46 @@ jobs:
     with:
       goodmap-version: ${{ github.sha }}          # Test this PR
       goodmap-frontend-version: 'main'             # Latest frontend
-      goodmap-e2e-version: 'main'                  # Latest tests
       calling-repo: 'goodmap'
       e2e-tests-path: 'goodmap-e2e-tests'          # Where e2e-tests will be checked out
       goodmap-path: '.'                            # Goodmap is already checked out here
 ```
 
+### Example: Testing with a fork
+
+If you want to test changes in your fork before merging:
+
+```yaml
+jobs:
+  e2e-tests:
+    uses: raven-wing/goodmap-e2e-tests/.github/workflows/e2e-tests.yml@changes2
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit
+    with:
+      goodmap-version: ${{ github.sha }}
+      goodmap-frontend-version: 'main'
+      calling-repo: 'goodmap'
+      e2e-tests-path: 'goodmap-e2e-tests'
+      goodmap-path: '.'
+```
+
+The workflow will automatically checkout `changes2` from `raven-wing/goodmap-e2e-tests`.
+
 ## Reusable Components
 
 ### Path Handling for Cross-Repository Usage
 
-When `test-base.yml` is called from another repository, it uses the `e2e-tests-path` input parameter to correctly reference scripts. The workflow calls bash scripts using dynamic paths like:
+When `e2e-tests.yml` is called from another repository, it automatically detects which repository and ref to checkout based on the `uses:` statement in the calling workflow. The workflow parses `github.workflow_ref` to extract the repository and ref, ensuring it checks out the exact same version that contains the workflow file.
+
+The workflow then uses the `e2e-tests-path` input parameter to correctly reference scripts. For example:
 
 ```bash
-bash ${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh
+bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh"
 ```
 
-This ensures that resources are always loaded from the e2e-tests repository, regardless of which repository initiated the workflow.
+This ensures that resources are always loaded from the correct e2e-tests repository and version, regardless of which repository initiated the workflow.
 
 ### Bash Scripts
 
