@@ -57,16 +57,24 @@ jobs:
 
         # Extract repository (everything before /.github/)
         REPO=$(echo "$WORKFLOW_REF" | sed 's|/\.github/.*||')
-        echo "Repository: $REPO"
+        echo "Extracted repository: $REPO"
 
         # Extract ref (everything after @)
         REF=$(echo "$WORKFLOW_REF" | sed 's|.*@||')
-        echo "Raw ref: $REF"
+        echo "Extracted raw ref: $REF"
 
         # Remove refs/heads/ or refs/tags/ prefix if present
         REF=$(echo "$REF" | sed 's|^refs/heads/||' | sed 's|^refs/tags/||')
         echo "Cleaned ref: $REF"
 
+        # Validate that we got values
+        if [ -z "$REPO" ] || [ -z "$REF" ]; then
+          echo "ERROR: Failed to extract repository or ref from workflow_ref"
+          echo "REPO='$REPO', REF='$REF'"
+          exit 1
+        fi
+
+        echo "✅ Will checkout: $REPO @ $REF"
         echo "repository=$REPO" >> $GITHUB_OUTPUT
         echo "ref=$REF" >> $GITHUB_OUTPUT
 
@@ -77,6 +85,24 @@ jobs:
         path: ${{ inputs.e2e-tests-path }}
         repository: ${{ steps.determine-e2e-ref.outputs.repository }}
         ref: ${{ steps.determine-e2e-ref.outputs.ref }}
+
+    - name: Verify e2e-tests checkout
+      if: inputs.calling-repo != 'goodmap-e2e-tests'
+      run: |
+        echo "=== Verifying e2e-tests checkout ==="
+        echo "Expected path: ${{ github.workspace }}/${{ inputs.e2e-tests-path }}"
+        echo "Repository: ${{ steps.determine-e2e-ref.outputs.repository }}"
+        echo "Ref: ${{ steps.determine-e2e-ref.outputs.ref }}"
+        echo ""
+        echo "=== Directory contents ==="
+        ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/" || echo "❌ Directory not found!"
+        echo ""
+        echo "=== Checking for key files ==="
+        test -f "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/package.json" && echo "✅ package.json found" || echo "❌ package.json NOT found"
+        test -d "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts" && echo "✅ .github/scripts found" || echo "❌ .github/scripts NOT found"
+        echo ""
+        echo "=== Git info ==="
+        cd "${{ github.workspace }}/${{ inputs.e2e-tests-path }}" && git log --oneline -1 || echo "❌ Not a git repo"
 
     - name: Checkout goodmap repository
       if: inputs.calling-repo != 'goodmap'
