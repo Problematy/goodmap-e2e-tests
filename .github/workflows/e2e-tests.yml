@@ -46,32 +46,24 @@ jobs:
       with:
         submodules: ${{ inputs.calling-repo == 'goodmap' && 'true' || 'false' }}
 
-    - name: Determine e2e-tests repository and ref
+    - name: Debug - Dump entire GitHub context
       if: inputs.calling-repo != 'goodmap-e2e-tests'
-      id: determine-e2e-ref
       run: |
-        # Use github.action_repository and github.action_ref for reusable workflows
-        # These refer to the repository containing the reusable workflow, not the caller
-        REPO="${{ github.action_repository }}"
-        REF="${{ github.action_ref }}"
-
-        echo "Action repository: $REPO"
-        echo "Action ref: $REF"
-
-        # Remove refs/heads/ or refs/tags/ prefix if present
-        CLEANED_REF=$(echo "$REF" | sed 's|^refs/heads/||' | sed 's|^refs/tags/||')
-        echo "Cleaned ref: $CLEANED_REF"
-
-        # Validate that we got values
-        if [ -z "$REPO" ] || [ -z "$REF" ]; then
-          echo "ERROR: Failed to get repository or ref from github context"
-          echo "REPO='$REPO', REF='$REF'"
-          exit 1
-        fi
-
-        echo "✅ Will checkout: $REPO @ $CLEANED_REF"
-        echo "repository=$REPO" >> $GITHUB_OUTPUT
-        echo "ref=$CLEANED_REF" >> $GITHUB_OUTPUT
+        echo "=== Full GitHub Context ==="
+        echo '${{ toJSON(github) }}' | jq '.'
+        echo ""
+        echo "=== Environment Variables ==="
+        env | sort | grep -i github || true
+        echo ""
+        echo "=== Looking for workflow metadata ==="
+        echo "github.workflow_ref: ${{ github.workflow_ref }}"
+        echo "github.workflow: ${{ github.workflow }}"
+        echo "github.workflow_sha: ${{ github.workflow_sha }}"
+        echo "github.action: ${{ github.action }}"
+        echo "github.action_path: ${{ github.action_path }}"
+        echo "github.action_ref: ${{ github.action_ref }}"
+        echo "github.action_repository: ${{ github.action_repository }}"
+        echo "github.action_status: ${{ github.action_status }}"
 
     - name: Checkout e2e-tests repository
       if: inputs.calling-repo != 'goodmap-e2e-tests'
