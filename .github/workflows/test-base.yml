@@ -104,14 +104,15 @@ jobs:
         sleep 3
 
     - name: Start backend for e2e tests
-      uses: ${{ inputs.e2e-tests-path }}/.github/actions/start-backend
-      with:
-        config-path: ${{ inputs.goodmap-config-path }}
-        goodmap-path: ${{ github.workspace }}/${{ inputs.goodmap-path }}
-        working-directory: ${{ inputs.goodmap-path }}
-        make-target: run-e2e-env
-        log-file: /tmp/backend-e2e.log
-        pid-file: /tmp/backend-e2e.pid
+      run: |
+        bash ${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh \
+          "${{ inputs.goodmap-config-path }}" \
+          "${{ github.workspace }}/${{ inputs.goodmap-path }}" \
+          "${{ inputs.goodmap-path }}" \
+          "run-e2e-env" \
+          "/tmp/backend-e2e.log" \
+          "/tmp/backend-e2e.pid" \
+          "5"
 
     - name: Run e2e tests
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -122,10 +123,10 @@ jobs:
 
     - name: Stop backend for e2e tests
       if: always()
-      uses: ${{ inputs.e2e-tests-path }}/.github/actions/stop-backend
-      with:
-        pid-file: /tmp/backend-e2e.pid
-        config-pattern: "flask.*e2e_test_config"
+      run: |
+        bash ${{ inputs.e2e-tests-path }}/.github/scripts/stop-backend.sh \
+          "/tmp/backend-e2e.pid" \
+          "flask.*e2e_test_config"
 
     - name: Add e2e test results to summary
       if: always()
@@ -140,14 +141,15 @@ jobs:
       run: make e2e-stress-tests-generate-data
 
     - name: Start backend for stress tests
-      uses: ${{ inputs.e2e-tests-path }}/.github/actions/start-backend
-      with:
-        config-path: e2e_stress_test_config.yml
-        goodmap-path: ${{ github.workspace }}/${{ inputs.goodmap-path }}
-        working-directory: ${{ inputs.e2e-tests-path }}
-        make-target: run-e2e-stress-env
-        log-file: /tmp/backend-stress.log
-        pid-file: /tmp/backend-stress.pid
+      run: |
+        bash ${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh \
+          "e2e_stress_test_config.yml" \
+          "${{ github.workspace }}/${{ inputs.goodmap-path }}" \
+          "${{ inputs.e2e-tests-path }}" \
+          "run-e2e-stress-env" \
+          "/tmp/backend-stress.log" \
+          "/tmp/backend-stress.pid" \
+          "5"
 
     - name: Run e2e stress tests
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -158,10 +160,10 @@ jobs:
 
     - name: Stop backend for stress tests
       if: always()
-      uses: ${{ inputs.e2e-tests-path }}/.github/actions/stop-backend
-      with:
-        pid-file: /tmp/backend-stress.pid
-        config-pattern: "flask.*e2e_stress_test_config"
+      run: |
+        bash ${{ inputs.e2e-tests-path }}/.github/scripts/stop-backend.sh \
+          "/tmp/backend-stress.pid" \
+          "flask.*e2e_stress_test_config"
 
     - name: Add stress test results to summary
       if: always()

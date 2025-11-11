@@ -163,67 +163,73 @@ jobs:
 
 ### Path Handling for Cross-Repository Usage
 
-When `test-base.yml` is called from another repository, it uses the `e2e-tests-path` input parameter to correctly reference composite actions and scripts. For example:
+When `test-base.yml` is called from another repository, it uses the `e2e-tests-path` input parameter to correctly reference scripts. The workflow calls bash scripts using dynamic paths like:
 
-- Composite actions: `uses: ./${{ inputs.e2e-tests-path }}/.github/actions/start-backend`
-- Scripts: Run with `working-directory: ${{ inputs.e2e-tests-path }}`
+```bash
+bash ${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh
+```
 
 This ensures that resources are always loaded from the e2e-tests repository, regardless of which repository initiated the workflow.
 
-### Composite Actions
+### Bash Scripts
 
-The repository provides reusable composite actions for common tasks:
+The repository provides reusable bash scripts for common tasks:
 
-#### Start Backend Action
-`.github/actions/start-backend/action.yml`
+#### Start Backend Script
+`.github/scripts/start-backend.sh`
 
 Starts the Goodmap Flask backend with automatic health checking.
 
-**Inputs:**
+**Usage:**
+```bash
+start-backend.sh <config-path> <goodmap-path> <working-directory> <make-target> <log-file> <pid-file> [startup-wait-seconds]
+```
+
+**Parameters:**
 - `config-path`: Path to Goodmap configuration file
 - `goodmap-path`: Path to Goodmap repository
 - `working-directory`: Working directory to run make from
 - `make-target`: Make target to run (e.g., `run-e2e-env`)
 - `log-file`: Path to store backend logs
 - `pid-file`: Path to store backend PID
-- `startup-wait-seconds`: Seconds to wait for startup (default: 5)
+- `startup-wait-seconds`: Seconds to wait for startup (optional, default: 5)
 
 **Example:**
 ```yaml
-# When used within goodmap-e2e-tests repository
-- uses: ./.github/actions/start-backend
-  with:
-    config-path: e2e_test_config.yml
-    goodmap-path: ${{ github.workspace }}/goodmap
-    working-directory: goodmap
-    make-target: run-e2e-env
-    log-file: /tmp/backend.log
-    pid-file: /tmp/backend.pid
-
-# When referenced from another workflow (use full path)
-# In your workflow that calls test-base.yml, the path is handled automatically
-# via the e2e-tests-path parameter
+- name: Start backend
+  run: |
+    bash .github/scripts/start-backend.sh \
+      "e2e_test_config.yml" \
+      "${{ github.workspace }}/goodmap" \
+      "goodmap" \
+      "run-e2e-env" \
+      "/tmp/backend.log" \
+      "/tmp/backend.pid" \
+      "5"
 ```
 
-#### Stop Backend Action
-`.github/actions/stop-backend/action.yml`
+#### Stop Backend Script
+`.github/scripts/stop-backend.sh`
 
 Gracefully stops the Goodmap Flask backend.
 
-**Inputs:**
+**Usage:**
+```bash
+stop-backend.sh <pid-file> <config-pattern>
+```
+
+**Parameters:**
 - `pid-file`: Path to the PID file
 - `config-pattern`: Pattern to match flask process (e.g., `flask.*e2e_test_config`)
 
 **Example:**
 ```yaml
-# When used within goodmap-e2e-tests repository
-- uses: ./.github/actions/stop-backend
+- name: Stop backend
   if: always()
-  with:
-    pid-file: /tmp/backend.pid
-    config-pattern: "flask.*e2e_test_config"
-
-# Paths are handled automatically when called via test-base.yml
+  run: |
+    bash .github/scripts/stop-backend.sh \
+      "/tmp/backend.pid" \
+      "flask.*e2e_test_config"
 ```
 
 ### Performance Summary Script
