@@ -32,7 +32,9 @@ cd "$WORKING_DIRECTORY"
 export CONFIG_PATH
 export GOODMAP_PATH
 make "$MAKE_TARGET" > "$LOG_FILE" 2>&1 &
-echo $! > "$PID_FILE"
+BACKEND_PID=$!
+echo $BACKEND_PID > "$PID_FILE"
+disown $BACKEND_PID
 
 # Wait for startup
 sleep "$STARTUP_WAIT"
