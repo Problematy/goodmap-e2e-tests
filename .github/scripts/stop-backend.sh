@@ -43,8 +43,10 @@ fi
 echo "DEBUG: Before pkill, exit code: $?"
 
 # Kill by pattern as a fallback
+# Capture exit code before forcing success
 pkill -f "$CONFIG_PATTERN" 2>/dev/null
 PKILL_EXIT=$?
+true  # Force this step to succeed to prevent exit 143 propagation
 echo "DEBUG: pkill exited with code: $PKILL_EXIT"
 
 if [ "$PKILL_EXIT" -eq 0 ]; then
