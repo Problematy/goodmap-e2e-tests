@@ -46,24 +46,36 @@ jobs:
       with:
         submodules: ${{ inputs.calling-repo == 'goodmap' && 'true' || 'false' }}
 
-    - name: Debug - Dump entire GitHub context
+    - name: Try to detect e2e-tests repository using GitHub API
       if: inputs.calling-repo != 'goodmap-e2e-tests'
+      id: determine-e2e-ref
       run: |
-        echo "=== Full GitHub Context ==="
-        echo '${{ toJSON(github) }}' | jq '.'
+        echo "=== Attempting to fetch workflow run details from GitHub API ==="
+
+        # Try to get workflow run info which might tell us where the workflow file came from
+        WORKFLOW_RUN_URL="${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo "Fetching: $WORKFLOW_RUN_URL"
+
+        # Fetch workflow run details (no auth needed for public repos)
+        RESPONSE=$(curl -s "$WORKFLOW_RUN_URL")
+
+        echo "=== Workflow Run Response ==="
+        echo "$RESPONSE" | jq '.'
+
+        # Try to extract referenced_workflows if it exists
         echo ""
-        echo "=== Environment Variables ==="
-        env | sort | grep -i github || true
+        echo "=== Looking for referenced_workflows ==="
+        echo "$RESPONSE" | jq '.referenced_workflows // empty'
+
+        # Parse the calling workflow file to find the uses: line
         echo ""
-        echo "=== Looking for workflow metadata ==="
-        echo "github.workflow_ref: ${{ github.workflow_ref }}"
-        echo "github.workflow: ${{ github.workflow }}"
-        echo "github.workflow_sha: ${{ github.workflow_sha }}"
-        echo "github.action: ${{ github.action }}"
-        echo "github.action_path: ${{ github.action_path }}"
-        echo "github.action_ref: ${{ github.action_ref }}"
-        echo "github.action_repository: ${{ github.action_repository }}"
-        echo "github.action_status: ${{ github.action_status }}"
+        echo "=== Fetching calling workflow file ==="
+        WORKFLOW_FILE_URL="${{ github.api_url }}/repos/${{ github.repository }}/contents/.github/workflows/tests.yml?ref=${{ github.ref }}"
+        echo "Fetching: $WORKFLOW_FILE_URL"
+
+        WORKFLOW_CONTENT=$(curl -s "$WORKFLOW_FILE_URL" | jq -r '.content' | base64 -d)
+        echo "=== Workflow file content (grep for uses:) ==="
+        echo "$WORKFLOW_CONTENT" | grep -A 2 "uses:.*goodmap-e2e-tests" || echo "No match found"
 
     - name: Checkout e2e-tests repository
       if: inputs.calling-repo != 'goodmap-e2e-tests'
