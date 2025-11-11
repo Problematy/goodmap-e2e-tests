@@ -22,31 +22,55 @@ echo "  CONFIG_PATTERN: $CONFIG_PATTERN"
 echo "DEBUG: Current jobs:"
 jobs -l || true
 
-# Kill process by PID file if it exists
+# Kill process by PID file if it exists - kill entire process tree
 KILLED_BY_PID=false
 if [ -f "$PID_FILE" ]; then
   PID=$(cat "$PID_FILE")
   if kill -0 "$PID" 2>/dev/null; then
-    echo "Stopping backend with PID $PID"
+    echo "Stopping backend with PID $PID and all child processes"
+
+    # Get all child PIDs
+    CHILD_PIDS=$(pgrep -P "$PID" 2>/dev/null || true)
+    if [ -n "$CHILD_PIDS" ]; then
+      echo "Found child processes: $CHILD_PIDS"
+    fi
+
+    # Kill parent process (this should propagate to children, but let's be explicit)
     kill "$PID" 2>/dev/null
     KILL_EXIT=$?
     echo "DEBUG: kill command exited with code: $KILL_EXIT"
 
+    # Also explicitly kill all children
+    if [ -n "$CHILD_PIDS" ]; then
+      echo "$CHILD_PIDS" | xargs kill 2>/dev/null || true
+    fi
+
     if [ "$KILL_EXIT" -eq 0 ]; then
-      # Wait for process to actually die (up to 10 seconds)
-      echo "Waiting for process to terminate..."
+      # Wait for all processes to actually die (up to 10 seconds)
+      echo "Waiting for process tree to terminate..."
       for i in {1..20}; do
+        # Check if parent is dead
         if ! kill -0 "$PID" 2>/dev/null; then
-          echo "Process $PID terminated successfully after ${i} attempts"
-          KILLED_BY_PID=true
-          break
+          # Also check if any children are still alive
+          REMAINING=$(pgrep -P "$PID" 2>/dev/null | wc -l)
+          if [ "$REMAINING" -eq 0 ]; then
+            echo "Process $PID and all children terminated successfully after ${i} attempts"
+            KILLED_BY_PID=true
+            break
+          fi
         fi
         sleep 0.5
       done
 
       if [ "$KILLED_BY_PID" = false ]; then
-        echo "WARNING: Process $PID did not terminate after 10 seconds, trying SIGKILL"
+        echo "WARNING: Process tree did not terminate after 10 seconds, trying SIGKILL"
+        # Force kill parent
         kill -9 "$PID" 2>/dev/null || true
+        # Force kill any remaining children
+        REMAINING_PIDS=$(pgrep -P "$PID" 2>/dev/null || true)
+        if [ -n "$REMAINING_PIDS" ]; then
+          echo "$REMAINING_PIDS" | xargs kill -9 2>/dev/null || true
+        fi
         sleep 1
         KILLED_BY_PID=true
       fi
