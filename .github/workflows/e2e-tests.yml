@@ -50,33 +50,28 @@ jobs:
       if: inputs.calling-repo != 'goodmap-e2e-tests'
       id: determine-e2e-ref
       run: |
-        # Parse github.workflow_ref to extract repository and ref
-        # Format: owner/repo/.github/workflows/workflow.yml@ref
-        WORKFLOW_REF="${{ github.workflow_ref }}"
-        echo "Full workflow ref: $WORKFLOW_REF"
+        # Use github.action_repository and github.action_ref for reusable workflows
+        # These refer to the repository containing the reusable workflow, not the caller
+        REPO="${{ github.action_repository }}"
+        REF="${{ github.action_ref }}"
 
-        # Extract repository (everything before /.github/)
-        REPO=$(echo "$WORKFLOW_REF" | sed 's|/\.github/.*||')
-        echo "Extracted repository: $REPO"
-
-        # Extract ref (everything after @)
-        REF=$(echo "$WORKFLOW_REF" | sed 's|.*@||')
-        echo "Extracted raw ref: $REF"
+        echo "Action repository: $REPO"
+        echo "Action ref: $REF"
 
         # Remove refs/heads/ or refs/tags/ prefix if present
-        REF=$(echo "$REF" | sed 's|^refs/heads/||' | sed 's|^refs/tags/||')
-        echo "Cleaned ref: $REF"
+        CLEANED_REF=$(echo "$REF" | sed 's|^refs/heads/||' | sed 's|^refs/tags/||')
+        echo "Cleaned ref: $CLEANED_REF"
 
         # Validate that we got values
         if [ -z "$REPO" ] || [ -z "$REF" ]; then
-          echo "ERROR: Failed to extract repository or ref from workflow_ref"
+          echo "ERROR: Failed to get repository or ref from github context"
           echo "REPO='$REPO', REF='$REF'"
           exit 1
         fi
 
-        echo "✅ Will checkout: $REPO @ $REF"
+        echo "✅ Will checkout: $REPO @ $CLEANED_REF"
         echo "repository=$REPO" >> $GITHUB_OUTPUT
-        echo "ref=$REF" >> $GITHUB_OUTPUT
+        echo "ref=$CLEANED_REF" >> $GITHUB_OUTPUT
 
     - name: Checkout e2e-tests repository
       if: inputs.calling-repo != 'goodmap-e2e-tests'
