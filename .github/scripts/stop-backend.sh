@@ -22,27 +22,41 @@ echo "  CONFIG_PATTERN: $CONFIG_PATTERN"
 echo "DEBUG: Current jobs:"
 jobs -l || true
 
-# Kill process by PID file if it exists - kill entire process tree
+# Kill process by PID file if it exists - kill entire process tree recursively
 KILLED_BY_PID=false
 if [ -f "$PID_FILE" ]; then
   PID=$(cat "$PID_FILE")
   if kill -0 "$PID" 2>/dev/null; then
-    echo "Stopping backend with PID $PID and all child processes"
+    echo "Stopping backend with PID $PID and entire process tree"
 
-    # Get all child PIDs
-    CHILD_PIDS=$(pgrep -P "$PID" 2>/dev/null || true)
-    if [ -n "$CHILD_PIDS" ]; then
-      echo "Found child processes: $CHILD_PIDS"
+    # Function to recursively get all descendants
+    get_descendants() {
+      local pid=$1
+      local descendants=$(pgrep -P "$pid" 2>/dev/null || true)
+      if [ -n "$descendants" ]; then
+        echo "$descendants"
+        for child in $descendants; do
+          get_descendants "$child"
+        done
+      fi
+    }
+
+    # Get all descendants (children, grandchildren, etc.)
+    ALL_DESCENDANTS=$(get_descendants "$PID")
+    if [ -n "$ALL_DESCENDANTS" ]; then
+      # Remove duplicates and sort
+      ALL_DESCENDANTS=$(echo "$ALL_DESCENDANTS" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+      echo "Found descendant processes: $ALL_DESCENDANTS"
     fi
 
-    # Kill parent process (this should propagate to children, but let's be explicit)
+    # Kill entire process tree - parent first
     kill "$PID" 2>/dev/null
     KILL_EXIT=$?
-    echo "DEBUG: kill command exited with code: $KILL_EXIT"
+    echo "DEBUG: kill parent command exited with code: $KILL_EXIT"
 
-    # Also explicitly kill all children
-    if [ -n "$CHILD_PIDS" ]; then
-      echo "$CHILD_PIDS" | xargs kill 2>/dev/null || true
+    # Also explicitly kill all descendants
+    if [ -n "$ALL_DESCENDANTS" ]; then
+      echo "$ALL_DESCENDANTS" | tr ' ' '\n' | xargs kill 2>/dev/null || true
     fi
 
     if [ "$KILL_EXIT" -eq 0 ]; then
@@ -51,12 +65,14 @@ if [ -f "$PID_FILE" ]; then
       for i in {1..20}; do
         # Check if parent is dead
         if ! kill -0 "$PID" 2>/dev/null; then
-          # Also check if any children are still alive
-          REMAINING=$(pgrep -P "$PID" 2>/dev/null | wc -l)
+          # Also check if any descendants are still alive using recursive check
+          REMAINING=$(get_descendants "$PID" | wc -w)
           if [ "$REMAINING" -eq 0 ]; then
-            echo "Process $PID and all children terminated successfully after ${i} attempts"
+            echo "Process $PID and entire process tree terminated successfully after ${i} attempts"
             KILLED_BY_PID=true
             break
+          else
+            echo "Still waiting... $REMAINING descendant(s) remain"
           fi
         fi
         sleep 0.5
@@ -66,10 +82,11 @@ if [ -f "$PID_FILE" ]; then
         echo "WARNING: Process tree did not terminate after 10 seconds, trying SIGKILL"
         # Force kill parent
         kill -9 "$PID" 2>/dev/null || true
-        # Force kill any remaining children
-        REMAINING_PIDS=$(pgrep -P "$PID" 2>/dev/null || true)
-        if [ -n "$REMAINING_PIDS" ]; then
-          echo "$REMAINING_PIDS" | xargs kill -9 2>/dev/null || true
+        # Force kill any remaining descendants
+        REMAINING_DESCENDANTS=$(get_descendants "$PID")
+        if [ -n "$REMAINING_DESCENDANTS" ]; then
+          echo "Force killing remaining descendants: $REMAINING_DESCENDANTS"
+          echo "$REMAINING_DESCENDANTS" | tr ' ' '\n' | xargs kill -9 2>/dev/null || true
         fi
         sleep 1
         KILLED_BY_PID=true
