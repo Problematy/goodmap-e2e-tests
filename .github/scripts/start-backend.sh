@@ -27,6 +27,26 @@ echo "  LOG_FILE: $LOG_FILE"
 echo "  PID_FILE: $PID_FILE"
 echo "  STARTUP_WAIT: ${STARTUP_WAIT}s"
 
+# Wait for port 5000 to be available (up to 30 seconds)
+PORT=5000
+echo "Checking if port $PORT is available..."
+for i in {1..60}; do
+  if ! lsof -ti:$PORT >/dev/null 2>&1 && ! netstat -tuln 2>/dev/null | grep -q ":$PORT "; then
+    echo "Port $PORT is available"
+    break
+  fi
+  if [ $i -eq 60 ]; then
+    echo "ERROR: Port $PORT is still in use after 30 seconds. Processes using it:"
+    lsof -ti:$PORT 2>/dev/null || true
+    netstat -tuln 2>/dev/null | grep ":$PORT " || true
+    exit 1
+  fi
+  if [ $((i % 10)) -eq 0 ]; then
+    echo "Still waiting for port $PORT to be released... (${i}/60)"
+  fi
+  sleep 0.5
+done
+
 # Start the backend
 cd "$WORKING_DIRECTORY"
 export CONFIG_PATH
