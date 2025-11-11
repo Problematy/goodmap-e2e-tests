@@ -126,9 +126,13 @@ jobs:
     - name: Stop backend for e2e tests
       if: always()
       run: |
+        echo "DEBUG: About to call stop-backend.sh"
         bash ${{ inputs.e2e-tests-path }}/.github/scripts/stop-backend.sh \
           "/tmp/backend-e2e.pid" \
           "flask.*e2e_test_config"
+        SCRIPT_EXIT=$?
+        echo "DEBUG: stop-backend.sh exited with code: $SCRIPT_EXIT"
+        echo "DEBUG: Step finished"
 
     - name: Add e2e test results to summary
       if: always()
