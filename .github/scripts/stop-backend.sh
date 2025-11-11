@@ -18,10 +18,6 @@ echo "Stopping backend:"
 echo "  PID_FILE: $PID_FILE"
 echo "  CONFIG_PATTERN: $CONFIG_PATTERN"
 
-# Debug: Check current jobs
-echo "DEBUG: Current jobs:"
-jobs -l || true
-
 # Kill process by PID file if it exists - kill entire process tree recursively
 KILLED_BY_PID=false
 if [ -f "$PID_FILE" ]; then
@@ -52,7 +48,6 @@ if [ -f "$PID_FILE" ]; then
     # Kill entire process tree - parent first
     kill "$PID" 2>/dev/null
     KILL_EXIT=$?
-    echo "DEBUG: kill parent command exited with code: $KILL_EXIT"
 
     # Also explicitly kill all descendants
     if [ -n "$ALL_DESCENDANTS" ]; then
@@ -92,7 +87,6 @@ if [ -f "$PID_FILE" ]; then
         KILLED_BY_PID=true
       fi
     fi
-    echo "DEBUG: After kill verification"
   else
     echo "Process $PID is not running"
   fi
@@ -102,7 +96,7 @@ fi
 
 # Only try pkill if we didn't successfully kill by PID
 if [ "$KILLED_BY_PID" = false ]; then
-  echo "DEBUG: Attempting pkill fallback"
+  echo "Attempting pkill fallback..."
   # Kill by pattern as a fallback - run in completely isolated subshell
   PKILL_EXIT=1
   (
@@ -111,17 +105,12 @@ if [ "$KILLED_BY_PID" = false ]; then
     exit $?
   ) && PKILL_EXIT=0 || PKILL_EXIT=$?
 
-  echo "DEBUG: pkill exited with code: $PKILL_EXIT"
   if [ "$PKILL_EXIT" -eq 0 ]; then
     echo "Stopped additional processes matching pattern: $CONFIG_PATTERN"
   fi
-else
-  echo "DEBUG: Skipping pkill (already killed by PID)"
 fi
 
 # Give processes time to clean up
 sleep 1
-echo "DEBUG: After sleep 1, exit code: $?"
 
 echo "Backend stopped"
-echo "DEBUG: Final exit code before script end: $?"
