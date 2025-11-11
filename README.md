@@ -136,6 +136,8 @@ jobs:
 | `goodmap-frontend-path` | No | `goodmap-frontend` | Path where goodmap-frontend will be checked out |
 | `goodmap-config-path` | No | `e2e_test_config.yml` | Config file for goodmap E2E tests |
 
+**Note:** The `e2e-tests-path` parameter is critical for cross-repository usage. It ensures that composite actions and scripts are referenced from the correct repository location. When calling from another repository, this typically should be set to `goodmap-e2e-tests`.
+
 ### Example: Testing a goodmap PR
 
 When a PR is created in the `goodmap` repository, automatically test it with the latest frontend:
@@ -144,14 +146,29 @@ When a PR is created in the `goodmap` repository, automatically test it with the
 jobs:
   e2e-tests:
     uses: problematy/goodmap-e2e-tests/.github/workflows/test-base.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit
     with:
       goodmap-version: ${{ github.sha }}          # Test this PR
       goodmap-frontend-version: 'main'             # Latest frontend
       goodmap-e2e-version: 'main'                  # Latest tests
       calling-repo: 'goodmap'
+      e2e-tests-path: 'goodmap-e2e-tests'          # Where e2e-tests will be checked out
+      goodmap-path: '.'                            # Goodmap is already checked out here
 ```
 
 ## Reusable Components
+
+### Path Handling for Cross-Repository Usage
+
+When `test-base.yml` is called from another repository, it uses the `e2e-tests-path` input parameter to correctly reference composite actions and scripts. For example:
+
+- Composite actions: `uses: ./${{ inputs.e2e-tests-path }}/.github/actions/start-backend`
+- Scripts: Run with `working-directory: ${{ inputs.e2e-tests-path }}`
+
+This ensures that resources are always loaded from the e2e-tests repository, regardless of which repository initiated the workflow.
 
 ### Composite Actions
 
@@ -173,6 +190,7 @@ Starts the Goodmap Flask backend with automatic health checking.
 
 **Example:**
 ```yaml
+# When used within goodmap-e2e-tests repository
 - uses: ./.github/actions/start-backend
   with:
     config-path: e2e_test_config.yml
@@ -181,6 +199,10 @@ Starts the Goodmap Flask backend with automatic health checking.
     make-target: run-e2e-env
     log-file: /tmp/backend.log
     pid-file: /tmp/backend.pid
+
+# When referenced from another workflow (use full path)
+# In your workflow that calls test-base.yml, the path is handled automatically
+# via the e2e-tests-path parameter
 ```
 
 #### Stop Backend Action
@@ -194,11 +216,14 @@ Gracefully stops the Goodmap Flask backend.
 
 **Example:**
 ```yaml
+# When used within goodmap-e2e-tests repository
 - uses: ./.github/actions/stop-backend
   if: always()
   with:
     pid-file: /tmp/backend.pid
     config-pattern: "flask.*e2e_test_config"
+
+# Paths are handled automatically when called via test-base.yml
 ```
 
 ### Performance Summary Script
