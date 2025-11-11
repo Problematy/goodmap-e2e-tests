@@ -57,6 +57,21 @@ jobs:
         repository: problematy/goodmap-e2e-tests
         ref: ${{ inputs.goodmap-e2e-version }}
 
+    - name: Debug e2e-tests checkout
+      if: inputs.calling-repo != 'goodmap-e2e-tests'
+      run: |
+        echo "=== Listing e2e-tests checkout directory ==="
+        ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/" || echo "Directory not found"
+        echo ""
+        echo "=== Checking for .github directory ==="
+        ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/" || echo ".github not found"
+        echo ""
+        echo "=== Checking for scripts directory ==="
+        ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/" || echo "scripts not found"
+        echo ""
+        echo "=== Current git ref in e2e-tests ==="
+        cd "${{ github.workspace }}/${{ inputs.e2e-tests-path }}" && git log --oneline -1 || echo "Not a git repo"
+
     - name: Checkout goodmap repository
       if: inputs.calling-repo != 'goodmap'
       uses: actions/checkout@v4
