@@ -177,7 +177,19 @@ jobs:
       if: always()
       run: |
         PERF_FILE="${{ github.workspace }}/${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json"
-        node "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/generate-perf-summary.js" "$PERF_FILE" --format=github >> $GITHUB_STEP_SUMMARY
+        SCRIPT_PATH="${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/generate-perf-summary.js"
+
+        echo "Checking for script at: $SCRIPT_PATH"
+        if [ ! -f "$SCRIPT_PATH" ]; then
+          echo "ERROR: Script not found at $SCRIPT_PATH"
+          echo "Listing e2e-tests-path contents:"
+          ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/" || true
+          echo "Listing .github directory:"
+          ls -la "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/" || true
+          exit 1
+        fi
+
+        node "$SCRIPT_PATH" "$PERF_FILE" --format=github >> $GITHUB_STEP_SUMMARY
 
     - name: Save PR metadata for comment workflow
       if: always() && github.event.pull_request.number
