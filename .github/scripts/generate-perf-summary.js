@@ -15,7 +15,14 @@ function generatePerfSummary(perfPath, format = 'github') {
       : '## ⚠️ E2E Stress Test Results\n\nPerformance data not found. See workflow logs for details.\n';
   }
 
-  const perfData = JSON.parse(fs.readFileSync(perfPath, 'utf8'));
+  let perfData;
+  try {
+    perfData = JSON.parse(fs.readFileSync(perfPath, 'utf8'));
+  } catch (error) {
+    return format === 'github'
+      ? `## ⚠️ E2E Stress Test Results\n\nFailed to parse performance data: ${error.message}`
+      : `## ⚠️ E2E Stress Test Results\n\nFailed to parse performance data. See workflow logs for details.\n`;
+  }
   let summary = format === 'github'
     ? '## 📊 E2E Stress Test Performance\n\n'
     : '## 📊 E2E Stress Test Performance\n\n';
@@ -23,7 +30,7 @@ function generatePerfSummary(perfPath, format = 'github') {
   // Status section
   if (perfData.error) {
     summary += `❌ **Status**: ERROR - ${perfData.error}\n\n`;
-  } else if (perfData.numRuns < (perfData.expectedRuns || perfData.numRuns)) {
+  } else if (perfData.expectedRuns && perfData.numRuns < perfData.expectedRuns) {
     summary += `⚠️ **Status**: INCOMPLETE - Only ${perfData.numRuns}/${perfData.expectedRuns} runs completed\n\n`;
   } else if (perfData.passed) {
     summary += `✅ **Status**: PASSED (${perfData.maxTime}ms max < ${perfData.maxAllowed}ms limit)\n\n`;

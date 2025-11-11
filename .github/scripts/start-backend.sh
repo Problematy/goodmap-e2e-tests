@@ -60,7 +60,7 @@ disown $BACKEND_PID
 sleep "$STARTUP_WAIT"
 
 # Check if backend started successfully
-if ! kill -0 $(cat "$PID_FILE") 2>/dev/null; then
+if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
   echo "Backend failed to start. Log:"
   cat "$LOG_FILE"
   exit 1
