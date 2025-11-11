@@ -107,7 +107,7 @@ jobs:
 
     - name: Start backend for e2e tests
       run: |
-        bash ${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh \
+        bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "${{ inputs.goodmap-config-path }}" \
           "${{ github.workspace }}/${{ inputs.goodmap-path }}" \
           "${{ inputs.goodmap-path }}" \
@@ -128,7 +128,7 @@ jobs:
       shell: bash {0}  # Remove -e flag to prevent exit on background job termination
       run: |
         set +e  # Explicitly disable exit on error
-        bash ${{ inputs.e2e-tests-path }}/.github/scripts/stop-backend.sh \
+        bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/stop-backend.sh" \
           "/tmp/backend-e2e.pid" \
           "flask.*e2e_test_config"
         exit 0  # Always succeed for cleanup step
@@ -147,7 +147,7 @@ jobs:
 
     - name: Start backend for stress tests
       run: |
-        bash ${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh \
+        bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "e2e_stress_test_config.yml" \
           "${{ github.workspace }}/${{ inputs.goodmap-path }}" \
           "${{ inputs.e2e-tests-path }}" \
@@ -168,7 +168,7 @@ jobs:
       shell: bash {0}  # Remove -e flag to prevent exit on background job termination
       run: |
         set +e  # Explicitly disable exit on error
-        bash ${{ inputs.e2e-tests-path }}/.github/scripts/stop-backend.sh \
+        bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/stop-backend.sh" \
           "/tmp/backend-stress.pid" \
           "flask.*e2e_stress_test_config"
         exit 0  # Always succeed for cleanup step
