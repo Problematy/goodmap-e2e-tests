@@ -46,36 +46,53 @@ jobs:
       with:
         submodules: ${{ inputs.calling-repo == 'goodmap' && 'true' || 'false' }}
 
-    - name: Try to detect e2e-tests repository using GitHub API
+    - name: Detect e2e-tests repository from GitHub API
       if: inputs.calling-repo != 'goodmap-e2e-tests'
       id: determine-e2e-ref
       run: |
-        echo "=== Attempting to fetch workflow run details from GitHub API ==="
+        echo "=== Detecting e2e-tests repository from workflow run details ==="
 
-        # Try to get workflow run info which might tell us where the workflow file came from
+        # Fetch workflow run details to get referenced_workflows
         WORKFLOW_RUN_URL="${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         echo "Fetching: $WORKFLOW_RUN_URL"
 
-        # Fetch workflow run details (no auth needed for public repos)
         RESPONSE=$(curl -s "$WORKFLOW_RUN_URL")
 
-        echo "=== Workflow Run Response ==="
-        echo "$RESPONSE" | jq '.'
+        # Extract the first referenced workflow (this reusable workflow)
+        REFERENCED=$(echo "$RESPONSE" | jq -r '.referenced_workflows[0]')
 
-        # Try to extract referenced_workflows if it exists
-        echo ""
-        echo "=== Looking for referenced_workflows ==="
-        echo "$RESPONSE" | jq '.referenced_workflows // empty'
+        if [ "$REFERENCED" = "null" ] || [ -z "$REFERENCED" ]; then
+          echo "ERROR: No referenced_workflows found in API response"
+          echo "This shouldn't happen for reusable workflows"
+          exit 1
+        fi
 
-        # Parse the calling workflow file to find the uses: line
-        echo ""
-        echo "=== Fetching calling workflow file ==="
-        WORKFLOW_FILE_URL="${{ github.api_url }}/repos/${{ github.repository }}/contents/.github/workflows/tests.yml?ref=${{ github.ref }}"
-        echo "Fetching: $WORKFLOW_FILE_URL"
+        # Extract repository and ref from the path
+        # Format: owner/repo/.github/workflows/workflow.yml@ref
+        WORKFLOW_PATH=$(echo "$REFERENCED" | jq -r '.path')
+        REF=$(echo "$REFERENCED" | jq -r '.ref')
 
-        WORKFLOW_CONTENT=$(curl -s "$WORKFLOW_FILE_URL" | jq -r '.content' | base64 -d)
-        echo "=== Workflow file content (grep for uses:) ==="
-        echo "$WORKFLOW_CONTENT" | grep -A 2 "uses:.*goodmap-e2e-tests" || echo "No match found"
+        echo "Workflow path: $WORKFLOW_PATH"
+        echo "Ref from API: $REF"
+
+        # Extract repository (everything before /.github/)
+        REPO=$(echo "$WORKFLOW_PATH" | sed 's|/\.github/.*||')
+        echo "Extracted repository: $REPO"
+
+        # Clean ref (remove refs/heads/ or refs/tags/ prefix)
+        CLEANED_REF=$(echo "$REF" | sed 's|^refs/heads/||' | sed 's|^refs/tags/||')
+        echo "Cleaned ref: $CLEANED_REF"
+
+        # Validate
+        if [ -z "$REPO" ] || [ -z "$CLEANED_REF" ]; then
+          echo "ERROR: Failed to extract repository or ref"
+          echo "REPO='$REPO', CLEANED_REF='$CLEANED_REF'"
+          exit 1
+        fi
+
+        echo "✅ Will checkout e2e-tests from: $REPO @ $CLEANED_REF"
+        echo "repository=$REPO" >> $GITHUB_OUTPUT
+        echo "ref=$CLEANED_REF" >> $GITHUB_OUTPUT
 
     - name: Checkout e2e-tests repository
       if: inputs.calling-repo != 'goodmap-e2e-tests'
