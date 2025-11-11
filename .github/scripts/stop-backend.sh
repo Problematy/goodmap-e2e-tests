@@ -23,6 +23,7 @@ echo "DEBUG: Current jobs:"
 jobs -l || true
 
 # Kill process by PID file if it exists
+KILLED_BY_PID=false
 if [ -f "$PID_FILE" ]; then
   PID=$(cat "$PID_FILE")
   if kill -0 "$PID" 2>/dev/null; then
@@ -30,6 +31,9 @@ if [ -f "$PID_FILE" ]; then
     kill "$PID" 2>/dev/null
     KILL_EXIT=$?
     echo "DEBUG: kill command exited with code: $KILL_EXIT"
+    if [ "$KILL_EXIT" -eq 0 ]; then
+      KILLED_BY_PID=true
+    fi
     # Wait a moment for clean shutdown
     sleep 0.5
     echo "DEBUG: After sleep 0.5"
@@ -40,15 +44,23 @@ else
   echo "PID file $PID_FILE not found"
 fi
 
-echo "DEBUG: Before pkill, exit code: $?"
+# Only try pkill if we didn't successfully kill by PID
+if [ "$KILLED_BY_PID" = false ]; then
+  echo "DEBUG: Attempting pkill fallback"
+  # Kill by pattern as a fallback - run in completely isolated subshell
+  PKILL_EXIT=1
+  (
+    set +e
+    pkill -f "$CONFIG_PATTERN" 2>/dev/null
+    exit $?
+  ) && PKILL_EXIT=0 || PKILL_EXIT=$?
 
-# Kill by pattern as a fallback - run in subshell to isolate job control
-# This prevents the parent shell from seeing the background job termination
-(pkill -f "$CONFIG_PATTERN" 2>/dev/null) && PKILL_EXIT=0 || PKILL_EXIT=$?
-echo "DEBUG: pkill exited with code: $PKILL_EXIT"
-
-if [ "$PKILL_EXIT" -eq 0 ]; then
-  echo "Stopped additional processes matching pattern: $CONFIG_PATTERN"
+  echo "DEBUG: pkill exited with code: $PKILL_EXIT"
+  if [ "$PKILL_EXIT" -eq 0 ]; then
+    echo "Stopped additional processes matching pattern: $CONFIG_PATTERN"
+  fi
+else
+  echo "DEBUG: Skipping pkill (already killed by PID)"
 fi
 
 # Give processes time to clean up
