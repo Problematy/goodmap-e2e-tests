@@ -31,12 +31,27 @@ if [ -f "$PID_FILE" ]; then
     kill "$PID" 2>/dev/null
     KILL_EXIT=$?
     echo "DEBUG: kill command exited with code: $KILL_EXIT"
+
     if [ "$KILL_EXIT" -eq 0 ]; then
-      KILLED_BY_PID=true
+      # Wait for process to actually die (up to 10 seconds)
+      echo "Waiting for process to terminate..."
+      for i in {1..20}; do
+        if ! kill -0 "$PID" 2>/dev/null; then
+          echo "Process $PID terminated successfully after ${i} attempts"
+          KILLED_BY_PID=true
+          break
+        fi
+        sleep 0.5
+      done
+
+      if [ "$KILLED_BY_PID" = false ]; then
+        echo "WARNING: Process $PID did not terminate after 10 seconds, trying SIGKILL"
+        kill -9 "$PID" 2>/dev/null || true
+        sleep 1
+        KILLED_BY_PID=true
+      fi
     fi
-    # Wait a moment for clean shutdown
-    sleep 0.5
-    echo "DEBUG: After sleep 0.5"
+    echo "DEBUG: After kill verification"
   else
     echo "Process $PID is not running"
   fi
