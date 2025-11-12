@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   post-results:
-    if: github.event.workflow_run.conclusion != 'cancelled'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled'
     uses: ./.github/workflows/pr-comment.yml
     permissions:
       actions: read
