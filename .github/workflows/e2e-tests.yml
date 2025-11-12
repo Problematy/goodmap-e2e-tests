@@ -106,7 +106,7 @@ jobs:
         echo "ref=$CLEANED_REF" >> $GITHUB_OUTPUT
 
     - name: Checkout e2e-tests repository
-      if: inputs.calling-repo != 'goodmap-e2e-tests'
+      if: inputs.calling-repo != 'goodmap-e2e-tests' && steps.determine-e2e-ref.outcome == 'success'
       uses: actions/checkout@v4
       with:
         path: ${{ inputs.e2e-tests-path }}
