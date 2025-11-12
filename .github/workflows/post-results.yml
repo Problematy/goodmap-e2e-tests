@@ -7,6 +7,7 @@ on:
       - completed
 
 permissions:
+  actions: read
   contents: read
   pull-requests: write
 
@@ -15,6 +16,7 @@ jobs:
     if: github.event.workflow_run.conclusion != 'cancelled'
     uses: ./.github/workflows/pr-comment.yml
     permissions:
+      actions: read
       contents: read
       pull-requests: write
     secrets: inherit
