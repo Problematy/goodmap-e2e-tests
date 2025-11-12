@@ -7,6 +7,11 @@ on:
       goodmap-frontend-version:
         required: true
         type: string
+      goodmap-e2e-version:
+        description: 'Version/ref of e2e-tests repository to checkout'
+        required: false
+        type: string
+        default: 'main'
       calling-repo:
         description: 'Which repository is calling this workflow (goodmap-e2e-tests, goodmap, or goodmap-frontend)'
         required: false
@@ -56,14 +61,20 @@ jobs:
         WORKFLOW_RUN_URL="${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         echo "Fetching: $WORKFLOW_RUN_URL"
 
-        RESPONSE=$(curl -s "$WORKFLOW_RUN_URL")
+        RESPONSE=$(curl -s -H "Authorization: Bearer ${{ github.token }}" "$WORKFLOW_RUN_URL")
+
+        # Debug: show API response structure
+        echo "API Response (first 500 chars):"
+        echo "$RESPONSE" | head -c 500
+        echo ""
 
         # Extract the first referenced workflow (this reusable workflow)
         REFERENCED=$(echo "$RESPONSE" | jq -r '.referenced_workflows[0]')
 
         if [ "$REFERENCED" = "null" ] || [ -z "$REFERENCED" ]; then
           echo "ERROR: No referenced_workflows found in API response"
-          echo "This shouldn't happen for reusable workflows"
+          echo "Dumping full API response for debugging:"
+          echo "$RESPONSE" | jq '.'
           exit 1
         fi
 
