@@ -79,8 +79,9 @@ Generate stress test data:
 The repository includes GitHub Actions workflows to automatically run the tests:
 
 - `.github/workflows/test.yml`: Triggered on pull requests and pushes to main
-- `.github/workflows/test-base.yml`: Reusable workflow that can be called by other repositories
-- `.github/workflows/test-comment.yml`: Posts test results as PR comments
+- `.github/workflows/e2e-tests.yml`: Reusable workflow that can be called by other repositories
+- `.github/workflows/pr-comment.yml`: Reusable workflow for posting test results to PRs
+- `.github/workflows/post-results.yml`: Posts test results as PR comments when local tests complete
 
 ## Using as a Reusable Workflow
 
@@ -180,7 +181,7 @@ The workflow will automatically checkout `changes2` from `raven-wing/goodmap-e2e
 
 ### Path Handling for Cross-Repository Usage
 
-When `e2e-tests.yml` is called from another repository, it automatically detects which repository and ref to checkout based on the `uses:` statement in the calling workflow. The workflow parses `github.workflow_ref` to extract the repository and ref, ensuring it checks out the exact same version that contains the workflow file.
+When `e2e-tests.yml` is called from another repository, it automatically detects which repository and ref to checkout based on the `uses:` statement in the calling workflow. The workflow uses the GitHub API's `referenced_workflows` field to extract the repository and ref, ensuring it checks out the exact same version that contains the workflow file.
 
 The workflow then uses the `e2e-tests-path` input parameter to correctly reference scripts. For example:
 
@@ -269,6 +270,70 @@ node .github/scripts/generate-perf-summary.js <perf-json-path> [--format=github|
     node .github/scripts/generate-perf-summary.js \
       cypress/results/stress-test-perf.json \
       --format=github >> $GITHUB_STEP_SUMMARY
+```
+
+### PR Comment Workflows
+
+The repository provides reusable workflows for posting E2E test results as PR comments:
+
+#### `.github/workflows/pr-comment.yml` (Reusable Workflow)
+
+Posts E2E test results to a pull request. This workflow can be called from any repository.
+
+**Usage:**
+```yaml
+jobs:
+  post-results:
+    uses: problematy/goodmap-e2e-tests/.github/workflows/pr-comment.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      comment_token: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      run_id: ${{ github.event.workflow_run.id }}
+```
+
+**Inputs:**
+- `run_id` (required): Workflow run ID to fetch artifacts from
+
+**What it does:**
+1. Downloads test result artifacts from the specified workflow run
+2. Extracts PR metadata (PR number, commit SHA, e2e-tests path)
+3. Generates performance summary using `generate-perf-summary.js`
+4. Posts a comment to the PR with test results and performance metrics
+
+#### `.github/workflows/post-results.yml` (Local Trigger)
+
+Automatically posts test results when the "E2E Tests" workflow completes in this repository. This workflow watches for test completion and calls `pr-comment.yml`.
+
+**Example for other repositories:**
+
+In `goodmap` or `goodmap-frontend` repositories, create a similar workflow:
+
+```yaml
+name: Post E2E Test Results
+
+on:
+  workflow_run:
+    workflows: ["Testing pipeline"]  # Name of your testing workflow
+    types:
+      - completed
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  post-results:
+    uses: problematy/goodmap-e2e-tests/.github/workflows/pr-comment.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      comment_token: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      run_id: ${{ github.event.workflow_run.id }}
 ```
 
 

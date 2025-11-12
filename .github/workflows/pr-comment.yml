@@ -1,15 +1,11 @@
-name: Post E2E Test Results
+name: Post E2E Test Results to PR
 
 on:
-  workflow_run:
-    workflows: ["E2E Tests"]
-    types:
-      - completed
   workflow_call:
     inputs:
       run_id:
         description: 'Workflow run ID to fetch artifacts from'
-        required: false
+        required: true
         type: string
     secrets:
       comment_token:
@@ -22,7 +18,6 @@ jobs:
       contents: read
       pull-requests: write
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion != 'cancelled'
     steps:
       - name: Download test results
         id: download
@@ -32,7 +27,7 @@ jobs:
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              run_id: ${{ inputs.run_id || github.event.workflow_run.id }}
+              run_id: ${{ inputs.run_id }}
             });
 
             const matchArtifact = artifacts.data.artifacts.find(artifact => artifact.name === 'test-results');
@@ -83,20 +78,9 @@ jobs:
             const prNumber = parseInt('${{ steps.pr-metadata.outputs.pr-number }}');
             const prSha = '${{ steps.pr-metadata.outputs.pr-sha }}';
             const e2eTestsPath = '${{ steps.pr-metadata.outputs.e2e-tests-path }}';
-            const conclusion = '${{ github.event.workflow_run.conclusion }}';
-            const runUrl = '${{ github.event.workflow_run.html_url }}';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ inputs.run_id }}`;
 
             let comment = '## 🧪 E2E Test Results\n\n';
-
-            // Add workflow status
-            if (conclusion === 'success') {
-              comment += '✅ **Status**: All tests passed\n\n';
-            } else if (conclusion === 'failure') {
-              comment += '❌ **Status**: Tests failed\n\n';
-            } else {
-              comment += `⚠️ **Status**: ${conclusion}\n\n`;
-            }
-
             comment += `📊 [View full workflow run](${runUrl})\n`;
             comment += `🔗 Commit: \`${prSha.substring(0, 7)}\`\n\n`;
 
