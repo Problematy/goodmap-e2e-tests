@@ -85,9 +85,16 @@ jobs:
             comment += `🔗 Commit: \`${prSha.substring(0, 7)}\`\n\n`;
 
             // Add detailed performance metrics using the shared script
-            const perfPath = `${e2eTestsPath}/cypress/results/stress-test-perf.json`;
-            const { generatePerfSummary } = require(`${e2eTestsPath}/.github/scripts/generate-perf-summary.js`);
-            comment += generatePerfSummary(perfPath, 'pr-comment');
+            let perfSummary = '';
+            try {
+              const perfPath = `${e2eTestsPath}/cypress/results/stress-test-perf.json`;
+              const { generatePerfSummary } = require(`${e2eTestsPath}/.github/scripts/generate-perf-summary.js`);
+              perfSummary = generatePerfSummary(perfPath, 'pr-comment');
+            } catch (error) {
+              console.warn('Failed to generate performance summary:', error.message);
+              perfSummary = '⚠️ Performance summary unavailable';
+            }
+            comment += perfSummary;
 
             // Post comment to PR
             await github.rest.issues.createComment({
