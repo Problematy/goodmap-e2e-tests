@@ -28,7 +28,8 @@ if [ -f "$PID_FILE" ]; then
     # Function to recursively get all descendants
     get_descendants() {
       local pid=$1
-      local descendants=$(pgrep -P "$pid" 2>/dev/null || true)
+      local descendants
+      descendants=$(pgrep -P "$pid" 2>/dev/null || true)
       if [ -n "$descendants" ]; then
         echo "$descendants"
         for child in $descendants; do
