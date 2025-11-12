@@ -15,6 +15,7 @@ on:
 jobs:
   comment:
     permissions:
+      actions: read
       contents: read
       pull-requests: write
     runs-on: ubuntu-latest
