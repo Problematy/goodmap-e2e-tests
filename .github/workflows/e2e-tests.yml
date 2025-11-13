@@ -293,6 +293,7 @@ jobs:
           /tmp/pr-sha.txt
           /tmp/e2e-tests-path.txt
           ${{ inputs.e2e-tests-path }}/cypress/results/stress-test-perf.json
+          ${{ inputs.e2e-tests-path }}/.github/scripts/generate-perf-summary.js
         retention-days: 1
         if-no-files-found: ignore
 

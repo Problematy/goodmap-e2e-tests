@@ -88,11 +88,18 @@ jobs:
             // Add detailed performance metrics using the shared script
             let perfSummary = '';
             try {
-              const perfPath = `${e2eTestsPath}/cypress/results/stress-test-perf.json`;
-              const { generatePerfSummary } = require(`${e2eTestsPath}/.github/scripts/generate-perf-summary.js`);
+              const path = require('path');
+              const perfPath = path.join(process.cwd(), e2eTestsPath, 'cypress/results/stress-test-perf.json');
+              const scriptPath = path.join(process.cwd(), e2eTestsPath, '.github/scripts/generate-perf-summary.js');
+
+              console.log('Looking for script at:', scriptPath);
+              console.log('Looking for perf data at:', perfPath);
+
+              const { generatePerfSummary } = require(scriptPath);
               perfSummary = generatePerfSummary(perfPath, 'pr-comment');
             } catch (error) {
               console.warn('Failed to generate performance summary:', error.message);
+              console.warn('Stack:', error.stack);
               perfSummary = '⚠️ Performance summary unavailable';
             }
             comment += perfSummary;
