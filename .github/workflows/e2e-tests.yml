@@ -7,11 +7,6 @@ on:
       goodmap-frontend-version:
         required: true
         type: string
-      goodmap-e2e-version:
-        description: 'Version/ref of e2e-tests repository to checkout'
-        required: false
-        type: string
-        default: 'main'
       calling-repo:
         description: 'Which repository is calling this workflow (goodmap-e2e-tests, goodmap, or goodmap-frontend)'
         required: false
