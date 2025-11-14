@@ -28,13 +28,6 @@ The test environment uses several configuration files:
 
 ## Getting Started
 
-### Installation
-
-1. Install Goodmap dependencies:
-    ```bash
-    make install-goodmap
-    ```
-
 ### Running Tests
 Basic E2E Tests
 1. Start the Goodmap backend:
