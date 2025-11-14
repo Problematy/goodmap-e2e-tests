@@ -184,14 +184,13 @@ jobs:
 
     - name: Start backend for e2e tests
       run: |
+        CONFIG_PATH="${{ github.workspace }}/${{ inputs.goodmap-path }}/${{ inputs.goodmap-config-path }}"
+
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
-          "${{ inputs.goodmap-config-path }}" \
-          "${{ github.workspace }}/${{ inputs.goodmap-path }}" \
-          "${{ inputs.e2e-tests-path }}" \
-          "run-e2e-goodmap" \
           "/tmp/backend-e2e.log" \
           "/tmp/backend-e2e.pid" \
-          "5"
+          "5" \
+          "cd ${{ github.workspace }}/${{ inputs.goodmap-path }} && CONFIG_PATH='$CONFIG_PATH' make run-e2e-goodmap"
 
     - name: Run e2e tests
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -225,14 +224,13 @@ jobs:
 
     - name: Start backend for stress tests
       run: |
+        CONFIG_PATH="${{ github.workspace }}/${{ inputs.goodmap-path }}/tests/e2e_tests/e2e_stress_test_config.yml"
+
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
-          "e2e_stress_test_config.yml" \
-          "${{ github.workspace }}/${{ inputs.goodmap-path }}" \
-          "${{ inputs.e2e-tests-path }}" \
-          "run-e2e-stress-env" \
           "/tmp/backend-stress.log" \
           "/tmp/backend-stress.pid" \
-          "5"
+          "5" \
+          "cd ${{ github.workspace }}/${{ inputs.goodmap-path }} && CONFIG_PATH='$CONFIG_PATH' make run-e2e-stress-env"
 
     - name: Run e2e stress tests
       working-directory: ${{ inputs.e2e-tests-path }}
