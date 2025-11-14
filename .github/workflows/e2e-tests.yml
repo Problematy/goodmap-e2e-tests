@@ -185,7 +185,7 @@ jobs:
     - name: Start backend for e2e tests
       run: |
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
-          "${{ inputs.goodmap-config-path }}" \
+          "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/${{ inputs.goodmap-config-path }}" \
           "${{ github.workspace }}/${{ inputs.goodmap-path }}" \
           "${{ inputs.e2e-tests-path }}" \
           "run-e2e-goodmap" \
@@ -226,7 +226,7 @@ jobs:
     - name: Start backend for stress tests
       run: |
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
-          "e2e_stress_test_config.yml" \
+          "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_stress_test_config.yml" \
           "${{ github.workspace }}/${{ inputs.goodmap-path }}" \
           "${{ inputs.e2e-tests-path }}" \
           "run-e2e-stress-env" \
