@@ -1,9 +1,6 @@
 const { defineConfig } = require("cypress");
 const http = require("http");
 
-// State management for stress tests (Node.js context, outside browser)
-let stressTestResults = [];
-
 module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://localhost:5000/',
@@ -28,20 +25,6 @@ module.exports = defineConfig({
         },
         log(message) {
           console.log(message);
-          return null;
-        },
-        // Stress test result management
-        'stressTest:addResult'(result) {
-          stressTestResults.push(result);
-          console.log(`Stored result for run ${result.run}: ${result.time}ms, ${result.markerCount} markers`);
-          return null;
-        },
-        'stressTest:getResults'() {
-          return stressTestResults;
-        },
-        'stressTest:reset'() {
-          stressTestResults = [];
-          console.log('Reset stress test results');
           return null;
         }
       });
