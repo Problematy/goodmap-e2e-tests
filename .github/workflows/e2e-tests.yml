@@ -190,13 +190,12 @@ jobs:
     - name: Start backend for e2e tests
       run: |
         CONFIG_PATH="${{ github.workspace }}/${{ inputs.goodmap-config-path }}"
-        CONFIG_DIR=$(dirname "$CONFIG_PATH")
 
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "/tmp/backend-e2e.log" \
           "/tmp/backend-e2e.pid" \
           "5" \
-          "cd ${{ github.workspace }}/${{ inputs.goodmap-path }} && poetry run bash -c \"cd '$CONFIG_DIR' && flask --app 'goodmap.goodmap:create_app(config_path=\\\"$CONFIG_PATH\\\")' run\""
+          "cd ${{ github.workspace }}/${{ inputs.goodmap-path }} && CONFIG_PATH='$CONFIG_PATH' make run-e2e-goodmap"
 
     - name: Run e2e tests
       working-directory: ${{ inputs.e2e-tests-path }}
@@ -231,13 +230,12 @@ jobs:
     - name: Start backend for stress tests
       run: |
         CONFIG_PATH="${{ github.workspace }}/${{ inputs.goodmap-stress-config-path }}"
-        CONFIG_DIR=$(dirname "$CONFIG_PATH")
 
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "/tmp/backend-stress.log" \
           "/tmp/backend-stress.pid" \
           "5" \
-          "cd ${{ github.workspace }}/${{ inputs.goodmap-path }} && poetry run bash -c \"cd '$CONFIG_DIR' && flask --app 'goodmap.goodmap:create_app(config_path=\\\"$CONFIG_PATH\\\")' run\""
+          "cd ${{ github.workspace }}/${{ inputs.goodmap-path }} && CONFIG_PATH='$CONFIG_PATH' make run-e2e-stress-env"
 
     - name: Run e2e stress tests
       working-directory: ${{ inputs.e2e-tests-path }}
