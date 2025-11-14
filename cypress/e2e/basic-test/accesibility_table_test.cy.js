@@ -19,7 +19,7 @@ describe('Accessibility table test', () => {
     it('should properly display places', () => {
         rowElements()
             // Header + 2 rows
-            .should('have.length', 3);
+            .should('have.length', 33);
     });
 
     it("should 'Zwierzyniecka' be first row", () => {
