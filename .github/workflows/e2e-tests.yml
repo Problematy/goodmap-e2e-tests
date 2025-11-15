@@ -26,21 +26,6 @@ on:
         required: false
         type: string
         default: 'goodmap-frontend'
-      goodmap-config-path:
-        description: 'Path to goodmap configuration file for e2e tests (relative to workspace root)'
-        required: false
-        type: string
-        default: e2e_test_config.yml
-      goodmap-stress-config-path:
-        description: 'Path to goodmap configuration file for stress tests (relative to workspace root)'
-        required: false
-        type: string
-        default: e2e_stress_test_config.yml
-      running-directory:
-        description: 'Directory from which to run the backend for stress tests'
-        required: false
-        type: string
-        default: ${{ github.workspace }}/goodmap-e2e-tests
 
 permissions:
   contents: read
@@ -195,9 +180,9 @@ jobs:
 
     - name: Start backend for e2e tests
       run: |
-        CONFIG_PATH="${{ github.workspace }}/${{ inputs.goodmap-config-path }}"
-        RUNNING_DIRECTORY="${{ github.workspace }}/${{ inputs.running-directory }}"
-        
+        CONFIG_PATH="${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_test_config.yml"
+        RUNNING_DIRECTORY="${{ github.workspace }}/${{ inputs.e2e-tests-path }}"
+
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "/tmp/backend-e2e.log" \
           "/tmp/backend-e2e.pid" \
@@ -237,8 +222,8 @@ jobs:
     - name: Start backend for stress tests
       working-directory: ${{ inputs.goodmap-path }}
       run: |
-        CONFIG_PATH="${{ github.workspace }}/${{ inputs.goodmap-stress-config-path }}"
-        RUNNING_DIRECTORY="${{ inputs.running-directory }}"
+        CONFIG_PATH="${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_stress_test_config.yml"
+        RUNNING_DIRECTORY="${{ github.workspace }}/${{ inputs.e2e-tests-path }}"
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "/tmp/backend-stress.log" \
           "/tmp/backend-stress.pid" \

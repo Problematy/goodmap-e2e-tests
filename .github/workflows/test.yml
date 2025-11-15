@@ -24,6 +24,3 @@ jobs:
       e2e-tests-path: '.'
       goodmap-path: 'goodmap'
       goodmap-frontend-path: 'goodmap-frontend'
-      goodmap-config-path: 'e2e_test_config.yml'
-      goodmap-stress-config-path: 'e2e_stress_test_config.yml'
-      running-directory: '.'
