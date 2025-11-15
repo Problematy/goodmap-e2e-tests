@@ -1,5 +1,5 @@
 GOODMAP_VERSION ?=
-CONFIG_ ?= e2e_test_config.yml
+CONFIG_PATH ?= e2e_test_config.yml
 GOODMAP_PATH ?= .
 
 lint-fix:
@@ -25,3 +25,7 @@ e2e-stress-tests:
 cleanup:
 	pip remove goodmap
 	npm remove
+
+run-e2e-env:
+	poetry --project '$(GOODMAP_PATH)' run flask --app "goodmap.goodmap:create_app(config_path='$(CONFIG_PATH)')" --debug run
+
