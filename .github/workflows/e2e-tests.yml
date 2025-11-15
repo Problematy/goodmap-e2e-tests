@@ -200,7 +200,7 @@ jobs:
           "/tmp/backend-e2e.log" \
           "/tmp/backend-e2e.pid" \
           "5" \
-          "cd ${{ github.workspace }}/${{ inputs.goodmap-path }} && CONFIG_PATH='$CONFIG_PATH' make run-e2e-goodmap"
+          "cd ${{ github.workspace }}/${{ inputs.goodmap-path }} && CONFIG_PATH='$CONFIG_PATH' make run-e2e-env"
 
     - name: Run e2e tests
       working-directory: ${{ inputs.e2e-tests-path }}
