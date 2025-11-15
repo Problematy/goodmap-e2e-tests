@@ -181,7 +181,7 @@ jobs:
     - name: Start backend for e2e tests
       run: |
         CONFIG_PATH="${{ github.workspace }}/${{ inputs.e2e-tests-path }}/e2e_test_config.yml"
-        GOODMAP_DIRECTORY="${{ github.workspace }}/${{ inputs.e2e-tests-path }}"
+        GOODMAP_DIRECTORY="${{ github.workspace }}/${{ inputs.goodmap-path }}"
 
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "/tmp/backend-e2e.log" \
