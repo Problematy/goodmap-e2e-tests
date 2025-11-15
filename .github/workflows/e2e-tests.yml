@@ -196,7 +196,7 @@ jobs:
     - name: Start backend for e2e tests
       run: |
         CONFIG_PATH="${{ github.workspace }}/${{ inputs.goodmap-config-path }}"
-        RUNNING_DIRECTORY="${{ inputs.running-directory }}"
+        RUNNING_DIRECTORY="${{ github.workspace }}/${{ inputs.running-directory }}"
         
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "/tmp/backend-e2e.log" \
@@ -238,7 +238,8 @@ jobs:
       working-directory: ${{ inputs.goodmap-path }}
       run: |
         CONFIG_PATH="${{ github.workspace }}/${{ inputs.goodmap-stress-config-path }}"
-        RUNNING_DIRECTORY="${{ inputs.running-directory }}"
+        RUNNING_DIRECTORY="${{ github.workspace }}/${{ inputs.running-directory }}"
+
         bash "${{ github.workspace }}/${{ inputs.e2e-tests-path }}/.github/scripts/start-backend.sh" \
           "/tmp/backend-stress.log" \
           "/tmp/backend-stress.pid" \
