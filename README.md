@@ -118,7 +118,6 @@ jobs:
 | `e2e-tests-path` | No | `.` | Path where e2e-tests will be checked out |
 | `goodmap-path` | No | `goodmap` | Path where goodmap will be checked out |
 | `goodmap-frontend-path` | No | `goodmap-frontend` | Path where goodmap-frontend will be checked out |
-| `goodmap-config-path` | No | `e2e_test_config.yml` | Config file for goodmap E2E tests |
 
 **Note:** The workflow automatically detects which version of e2e-tests to use based on the `@ref` specified in the `uses:` statement. For example, if you call `uses: problematy/goodmap-e2e-tests/.github/workflows/e2e-tests.yml@changes`, it will checkout the `changes` branch. This also works with forks: `uses: raven-wing/goodmap-e2e-tests/.github/workflows/e2e-tests.yml@my-feature` will checkout from the fork.
 
