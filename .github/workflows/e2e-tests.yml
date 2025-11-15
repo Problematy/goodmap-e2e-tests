@@ -149,9 +149,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: ${{ inputs.goodmap-path }}
-        repository: problematy/goodmap
+        repository: raven-wing/goodmap
         submodules: 'true'
-        ref: ${{ inputs.goodmap-version }}
+        ref: fix_pipeline2
+        #ref: ${{ inputs.goodmap-version }}
 
     - name: Checkout goodmap-frontend repository
       if: inputs.calling-repo != 'goodmap-frontend'
