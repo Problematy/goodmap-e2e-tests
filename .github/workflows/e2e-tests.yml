@@ -20,21 +20,21 @@ jobs:
     - name: Checkout e2e-tests repository
       uses: actions/checkout@v4
       with:
-        repository: problematy/goodmap-e2e-tests
+        repository: Problematy/goodmap-e2e-tests
         path: e2e-tests
 
     - name: Checkout goodmap repository
       uses: actions/checkout@v4
       with:
-        repository: problematy/goodmap
+        repository: Problematy/goodmap
         ref: ${{ inputs.goodmap-version }}
-        submodules: 'true'
+        submodules: true
         path: goodmap
 
     - name: Checkout goodmap-frontend repository
       uses: actions/checkout@v4
       with:
-        repository: problematy/goodmap-frontend
+        repository: Problematy/goodmap-frontend
         ref: ${{ inputs.goodmap-frontend-version }}
         path: goodmap-frontend
 
