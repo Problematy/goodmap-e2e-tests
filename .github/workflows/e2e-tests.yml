@@ -7,6 +7,11 @@ on:
       goodmap-frontend-version:
         required: true
         type: string
+      e2e-tests-version:
+        required: false
+        type: string
+        default: 'main'
+        description: 'Version/ref of e2e-tests to checkout (defaults to main)'
 
 permissions:
   contents: read
@@ -21,6 +26,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: Problematy/goodmap-e2e-tests
+        ref: ${{ inputs.e2e-tests-version }}
         path: e2e-tests
 
     - name: Checkout goodmap repository
