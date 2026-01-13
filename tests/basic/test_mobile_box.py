@@ -8,8 +8,9 @@ information as a bottom sheet that slides up from the bottom.
 
 import pytest
 from playwright.sync_api import Page, expect
-from tests.conftest import BASE_URL, ALL_MOBILE_DEVICES
-from tests.helpers import verify_popup_content, verify_problem_form, EXPECTED_PLACE_ZWIERZYNIECKA
+
+from tests.conftest import ALL_MOBILE_DEVICES, BASE_URL
+from tests.helpers import EXPECTED_PLACE_ZWIERZYNIECKA, verify_popup_content, verify_problem_form
 
 
 class TestPopupOnMobile:
@@ -32,15 +33,16 @@ class TestPopupOnMobile:
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
         # Click first marker to expand cluster
-        first_marker = mobile_page.locator('.leaflet-marker-icon').first
+        first_marker = mobile_page.locator(".leaflet-marker-icon").first
         first_marker.click()
 
         # Wait for markers to appear (should be 2 after expansion)
-        markers = mobile_page.locator('.leaflet-marker-icon')
+        markers = mobile_page.locator(".leaflet-marker-icon")
         expect(markers).to_have_count(2)
 
         # Click the rightmost marker
-        mobile_page.evaluate("""
+        mobile_page.evaluate(
+            """
             () => {
                 const markers = document.querySelectorAll('.leaflet-marker-icon');
                 let rightmostMarker = null;
@@ -58,10 +60,11 @@ class TestPopupOnMobile:
                     rightmostMarker.click();
                 }
             }
-        """)
+        """
+        )
 
         # On mobile, popup appears as Material-UI Dialog (bottom sheet)
-        dialog_content = mobile_page.locator('.MuiDialogContent-root')
+        dialog_content = mobile_page.locator(".MuiDialogContent-root")
         expect(dialog_content).to_be_visible(timeout=5000)
 
         # Verify popup content

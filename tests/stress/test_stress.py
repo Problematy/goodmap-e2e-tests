@@ -6,16 +6,16 @@ Measures page load time and marker rendering performance.
 """
 
 import time
+
 from playwright.sync_api import Page, expect
+
 from tests.conftest import BASE_URL, MAP_LOAD_TIMEOUT
 
 
 class TestStress:
     """Test suite for stress testing with large datasets"""
 
-    def test_should_load_all_markers_and_measure_performance(
-        self, page: Page, performance_tracker
-    ):
+    def test_should_load_all_markers_and_measure_performance(self, page: Page, performance_tracker):
         """
         Load the map with 100k markers multiple times and measure performance.
 
@@ -42,13 +42,12 @@ class TestStress:
             page.goto(BASE_URL)
 
             # Wait for map container to be ready
-            map_container = page.locator('#map')
+            map_container = page.locator("#map")
             expect(map_container).to_be_visible(timeout=MAP_LOAD_TIMEOUT)
 
             # Wait for locations API call to complete
             with page.expect_response(
-                lambda response: '/api/locations' in response.url,
-                timeout=MAP_LOAD_TIMEOUT
+                lambda response: "/api/locations" in response.url, timeout=MAP_LOAD_TIMEOUT
             ):
                 pass  # Just wait for the response
 
@@ -62,7 +61,7 @@ class TestStress:
             while attempt < max_attempts:
                 # Get current marker count
                 current_count = page.locator(
-                    '.leaflet-marker-icon, .leaflet-marker-cluster'
+                    ".leaflet-marker-icon, .leaflet-marker-cluster"
                 ).count()
 
                 # Check if count has stabilized
@@ -86,36 +85,41 @@ class TestStress:
                 )
 
             # Get final marker count
-            markers = page.locator('.leaflet-marker-icon, .leaflet-marker-cluster')
+            markers = page.locator(".leaflet-marker-icon, .leaflet-marker-cluster")
             marker_count = markers.count()
 
             # Calculate elapsed time
             end_time = time.time()
             elapsed_ms = (end_time - start_time) * 1000
 
-            print(f"Run {run_number} took {elapsed_ms:.0f}ms and loaded {marker_count} markers/clusters")
+            print(
+                f"Run {run_number} took {elapsed_ms:.0f}ms and loaded {marker_count} markers/clusters"
+            )
 
             # Record performance data
             performance_tracker.add_run(run_number, elapsed_ms, marker_count)
 
             # Verify minimum number of markers are loaded
-            assert marker_count > min_expected_markers, \
-                f"Expected more than {min_expected_markers} markers but got {marker_count}"
+            assert (
+                marker_count > min_expected_markers
+            ), f"Expected more than {min_expected_markers} markers but got {marker_count}"
 
         # Save performance data to JSON file
-        performance_tracker.save('test-results/stress-test-perf.json', max_allowed_time_ms)
+        performance_tracker.save("test-results/stress-test-perf.json", max_allowed_time_ms)
 
         # Calculate stats for assertions
         stats = performance_tracker.calculate_stats(max_allowed_time_ms)
 
-        print(f"\nPerformance Summary:")
+        print("\nPerformance Summary:")
         print(f"  Avg: {stats['avgTime']}ms")
         print(f"  Max: {stats['maxTime']}ms")
         print(f"  Avg Markers: {stats['avgMarkers']}")
 
         # Assertions
-        assert stats['numRuns'] == num_runs, \
-            f"Expected {num_runs} runs but only {stats['numRuns']} completed"
+        assert (
+            stats["numRuns"] == num_runs
+        ), f"Expected {num_runs} runs but only {stats['numRuns']} completed"
 
-        assert stats['maxTime'] < max_allowed_time_ms, \
-            f"The slowest run ({stats['maxTime']}ms) should be below {max_allowed_time_ms}ms"
+        assert (
+            stats["maxTime"] < max_allowed_time_ms
+        ), f"The slowest run ({stats['maxTime']}ms) should be below {max_allowed_time_ms}ms"

@@ -9,16 +9,13 @@ This module provides custom fixtures for:
 """
 
 import json
-import os
-import time
+from collections.abc import Callable, Generator
 from pathlib import Path
-from typing import Callable, Generator
-from urllib.request import urlopen
 from urllib.error import URLError
+from urllib.request import urlopen
 
 import pytest
-from playwright.sync_api import Page, BrowserContext, Route
-
+from playwright.sync_api import BrowserContext, Page, Route
 
 # Constants
 WEBPACK_SCRIPT_URL = "http://localhost:8080/index.js"
@@ -62,12 +59,9 @@ TEST_LOCATIONS = {
     "RYSY_MOUNTAIN": {
         "lat": 49.179,
         "lon": 20.088,
-        "tile_url": "https://c.tile.openstreetmap.org/16/36424/22456.png"
+        "tile_url": "https://c.tile.openstreetmap.org/16/36424/22456.png",
     },
-    "WROCLAW_CENTER": {
-        "lat": 51.10655,
-        "lon": 17.0555
-    }
+    "WROCLAW_CENTER": {"lat": 51.10655, "lon": 17.0555},
 }
 
 
@@ -84,7 +78,7 @@ def pytest_configure(config):
         print(f"\nFetching webpack script from {WEBPACK_SCRIPT_URL}...")
         try:
             with urlopen(WEBPACK_SCRIPT_URL, timeout=10) as response:
-                script_content = response.read().decode('utf-8')
+                script_content = response.read().decode("utf-8")
 
             # Validate script content
             if len(script_content) < 100:
@@ -116,7 +110,7 @@ def webpack_script() -> str:
 
 
 @pytest.fixture
-def page(page: Page, webpack_script: str) -> Generator[Page, None, None]:
+def page(page: Page, webpack_script: str) -> Page:
     """
     Override the default Playwright page fixture to intercept webpack script requests.
 
@@ -131,9 +125,7 @@ def page(page: Page, webpack_script: str) -> Generator[Page, None, None]:
     def handle_webpack_route(route: Route) -> None:
         """Intercept webpack script requests and serve from cache"""
         route.fulfill(
-            status=200,
-            content_type="application/javascript; charset=utf-8",
-            body=webpack_script
+            status=200, content_type="application/javascript; charset=utf-8", body=webpack_script
         )
 
     def block_hmr_route(route: Route) -> None:
@@ -146,7 +138,7 @@ def page(page: Page, webpack_script: str) -> Generator[Page, None, None]:
     page.route("**/ws", block_hmr_route)
     page.route("**/*.hot-update.*", block_hmr_route)
 
-    yield page
+    return page
 
     # Cleanup is automatic with Playwright's page fixture
 
@@ -173,12 +165,14 @@ def window_open_stub(page: Page) -> Callable[[], list[str]]:
     page.expose_function("__captureWindowOpen", lambda url: opened_urls.append(url))
 
     # Stub window.open in the page context
-    page.add_init_script("""
+    page.add_init_script(
+        """
         window.open = function(url, target, features) {
             window.__captureWindowOpen(url);
             return null;  // Prevent actual window opening
         };
-    """)
+    """
+    )
 
     def get_opened_urls() -> list[str]:
         return opened_urls.copy()
@@ -203,16 +197,17 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
             # ... test mobile-specific behavior
     """
     # Get device_name from parametrize
-    device_name = request.node.callspec.params.get('device_name')
+    device_name = request.node.callspec.params.get("device_name")
     if not device_name:
-        raise ValueError("mobile_page fixture requires 'device_name' parameter from @pytest.mark.parametrize")
+        raise ValueError(
+            "mobile_page fixture requires 'device_name' parameter from @pytest.mark.parametrize"
+        )
 
     device_config = MOBILE_DEVICES[device_name]
 
     # Create a new context with mobile user agent
     context = browser.new_context(
-        viewport=device_config["viewport"],
-        user_agent=device_config["user_agent"]
+        viewport=device_config["viewport"], user_agent=device_config["user_agent"]
     )
 
     # Create a page from this context
@@ -221,9 +216,7 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
     # Setup webpack route interception (same as regular page fixture)
     def handle_webpack_route(route: Route) -> None:
         route.fulfill(
-            status=200,
-            content_type="application/javascript; charset=utf-8",
-            body=webpack_script
+            status=200, content_type="application/javascript; charset=utf-8", body=webpack_script
         )
 
     def block_hmr_route(route: Route) -> None:
@@ -254,12 +247,14 @@ def mobile_window_open_stub(mobile_page: Page) -> Callable[[], list[str]]:
     mobile_page.expose_function("__captureWindowOpen", lambda url: opened_urls.append(url))
 
     # Stub window.open in the page context
-    mobile_page.add_init_script("""
+    mobile_page.add_init_script(
+        """
         window.open = function(url, target, features) {
             window.__captureWindowOpen(url);
             return null;  // Prevent actual window opening
         };
-    """)
+    """
+    )
 
     def get_opened_urls() -> list[str]:
         return opened_urls.copy()
@@ -309,6 +304,7 @@ def performance_tracker(page: Page) -> Callable:
 
             performance_tracker.save("test-results/stress-test-perf.json")
     """
+
     class PerformanceTracker:
         def __init__(self):
             self.run_times = []
@@ -317,11 +313,9 @@ def performance_tracker(page: Page) -> Callable:
 
         def add_run(self, run_number: int, time_ms: float, markers: int):
             """Add a performance measurement"""
-            self.run_times.append({
-                "run": run_number,
-                "time": round(time_ms, 2),
-                "markers": markers
-            })
+            self.run_times.append(
+                {"run": run_number, "time": round(time_ms, 2), "markers": markers}
+            )
             self.num_runs += 1
 
         def calculate_stats(self, max_allowed_ms: int = 25000):
@@ -341,7 +335,7 @@ def performance_tracker(page: Page) -> Callable:
                 "maxTime": round(max(times), 2),
                 "avgMarkers": round(sum(markers) / len(markers), 2) if markers else 0,
                 "maxAllowed": max_allowed_ms,
-                "passed": max(times) <= max_allowed_ms
+                "passed": max(times) <= max_allowed_ms,
             }
 
         def save(self, filepath: str, max_allowed_ms: int = 25000):
@@ -351,7 +345,7 @@ def performance_tracker(page: Page) -> Callable:
             # Ensure directory exists
             Path(filepath).parent.mkdir(parents=True, exist_ok=True)
 
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 json.dump(stats, f, indent=2)
 
             print(f"\nPerformance data saved to {filepath}")
@@ -364,17 +358,17 @@ def performance_tracker(page: Page) -> Callable:
 
 # Export constants for use in tests
 __all__ = [
-    'BASE_URL',
-    'MAP_LOAD_TIMEOUT',
-    'MARKER_LOAD_TIMEOUT',
-    'TABLE_LOAD_TIMEOUT',
-    'MOBILE_DEVICES',
-    'ALL_MOBILE_DEVICES',
-    'UI_VERTICAL_ALIGNMENT_TOLERANCE',
-    'TEST_LOCATIONS',
-    'webpack_script',
-    'page',
-    'window_open_stub',
-    'geolocation',
-    'performance_tracker',
+    "BASE_URL",
+    "MAP_LOAD_TIMEOUT",
+    "MARKER_LOAD_TIMEOUT",
+    "TABLE_LOAD_TIMEOUT",
+    "MOBILE_DEVICES",
+    "ALL_MOBILE_DEVICES",
+    "UI_VERTICAL_ALIGNMENT_TOLERANCE",
+    "TEST_LOCATIONS",
+    "webpack_script",
+    "page",
+    "window_open_stub",
+    "geolocation",
+    "performance_tracker",
 ]

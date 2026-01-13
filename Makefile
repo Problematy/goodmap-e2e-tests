@@ -1,3 +1,6 @@
+# Include .env file if it exists (for GOODMAP_PATH, etc.)
+-include .env
+
 CONFIG_PATH ?= e2e_test_config.yml
 GOODMAP_PATH ?= .
 PYTEST_SPEC ?= tests/
@@ -13,13 +16,16 @@ lint-check:
 pytest-run:
 	poetry run pytest $(PYTEST_SPEC) -v
 
-e2e-tests:
+setup-test-data:
+	cp e2e_test_data_template.json e2e_test_data.json
+
+e2e-tests: setup-test-data
 	$(MAKE) pytest-run PYTEST_SPEC="tests/basic"
 
 e2e-stress-tests-generate-data:
 	python cypress/support/generate_stress_test_data.py
 
-e2e-stress-tests:
+e2e-stress-tests: setup-test-data
 	$(MAKE) pytest-run PYTEST_SPEC="tests/stress"
 
 run-e2e-env:
