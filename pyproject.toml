@@ -24,10 +24,7 @@ python_classes = "Test*"
 python_functions = "test_*"
 # Playwright-specific settings
 base_url = "http://localhost:5000"
-# Browser selection - can be overridden via CLI
-browser = "chromium"
-headed = false
-slow_mo = 0
+# Browser/headed/slowmo should be passed via CLI: --browser=chromium --headed --slowmo=100
 
 [tool.ruff]
 line-length = 100

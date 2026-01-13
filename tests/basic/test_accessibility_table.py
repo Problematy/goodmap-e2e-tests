@@ -23,7 +23,7 @@ class TestAccessibilityTable:
         geolocation(location["lat"], location["lon"])
 
         # Navigate to the page
-        page.goto(BASE_URL)
+        page.goto(BASE_URL, wait_until="domcontentloaded")
 
         # Wait for map markers to load before clicking list view button
         markers = page.locator('.leaflet-marker-icon')

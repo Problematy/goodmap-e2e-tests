@@ -29,7 +29,7 @@ class TestPopupOnMobile:
         Tests on all mobile devices: iphone-x, iphone-6, ipad-2, samsung-s10
         """
         # Navigate to the page (device emulation already configured by mobile_page fixture)
-        mobile_page.goto(BASE_URL)
+        mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
         # Click first marker to expand cluster
         first_marker = mobile_page.locator('.leaflet-marker-icon').first
@@ -62,7 +62,7 @@ class TestPopupOnMobile:
 
         # On mobile, popup appears as Material-UI Dialog (bottom sheet)
         dialog_content = mobile_page.locator('.MuiDialogContent-root')
-        expect(dialog_content).to_be_visible(timeout=10000)
+        expect(dialog_content).to_be_visible(timeout=5000)
 
         # Verify popup content
         verify_popup_content(mobile_page, EXPECTED_PLACE_ZWIERZYNIECKA)

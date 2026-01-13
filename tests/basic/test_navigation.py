@@ -1,14 +1,70 @@
 """
 Navigation Bar Tests
 
-Tests navigation bar functionality on mobile devices including:
-- Hamburger menu alignment with logo
-- Left menu visibility and positioning
+Tests navigation bar functionality including:
+- Hamburger menu alignment with logo (mobile)
+- Left menu visibility and positioning (mobile)
+- Navigation menu links (desktop and mobile)
+- About page navigation
 """
 
 import pytest
 from playwright.sync_api import Page, expect
 from tests.conftest import BASE_URL, MOBILE_DEVICES, UI_VERTICAL_ALIGNMENT_TOLERANCE
+
+
+class TestNavigationMenu:
+    """Test suite for navigation menu functionality"""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, page: Page):
+        """Navigate to home page before each test"""
+        page.goto(BASE_URL, wait_until="domcontentloaded")
+        yield
+
+    def test_navigation_menu_opens_and_shows_links(self, page: Page):
+        """Verify navigation menu displays Map and About links on desktop"""
+        # On desktop, nav links are directly visible (no toggle needed)
+        # Verify Map link is visible and has correct href
+        map_link = page.get_by_role('link', name='Map', exact=True)
+        expect(map_link).to_be_visible()
+        expect(map_link).to_have_attribute('href', '/')
+
+        # Verify About link is visible and has correct href
+        about_link = page.get_by_role('link', name='About')
+        expect(about_link).to_be_visible()
+        expect(about_link).to_have_attribute('href', '/blog/page/about')
+
+    def test_about_link_navigates_to_about_page(self, page: Page):
+        """Verify clicking About link navigates to the about page"""
+        # On desktop, nav links are directly visible (no toggle needed)
+        # Click About link
+        about_link = page.get_by_role('link', name='About')
+        about_link.click()
+
+        # Verify we're on the About page
+        expect(page).to_have_url(f'{BASE_URL}/blog/page/about')
+        expect(page).to_have_title('About')
+
+        # Verify About heading is present
+        heading = page.get_by_role('heading', name='About', level=1)
+        expect(heading).to_be_visible()
+
+    def test_home_link_navigates_back_to_map(self, page: Page):
+        """Verify clicking home logo navigates back to map from About page"""
+        # Navigate to About page first
+        page.goto(f'{BASE_URL}/blog/page/about', wait_until="domcontentloaded")
+
+        # Click home link (logo)
+        home_link = page.get_by_role('link', name='Link to home page')
+        home_link.click()
+
+        # Verify we're back on the home page
+        expect(page).to_have_url(f'{BASE_URL}/')
+
+        # Verify map is visible (leaflet container should be present)
+        map_container = page.locator('.leaflet-container')
+        expect(map_container).to_be_visible()
 
 
 class TestNavigationBarForSmallDevices:
@@ -17,7 +73,7 @@ class TestNavigationBarForSmallDevices:
     @pytest.fixture(autouse=True)
     def setup(self, page: Page):
         """Navigate to home page before each test"""
-        page.goto(BASE_URL)
+        page.goto(BASE_URL, wait_until="domcontentloaded")
         yield
 
     @pytest.mark.parametrize("device_name", list(MOBILE_DEVICES.keys()))

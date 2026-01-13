@@ -20,7 +20,7 @@ class TestGoToMyLocationButton:
         geolocation(location["lat"], location["lon"])
 
         # Navigate to the page
-        page.goto(BASE_URL)
+        page.goto(BASE_URL, wait_until="domcontentloaded")
         yield
 
     def test_should_click_go_to_my_location_button_and_move_map(self, page: Page):

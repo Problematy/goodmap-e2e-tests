@@ -27,9 +27,9 @@ CACHE_FILE = CACHE_DIR / "webpack-script.js"
 BASE_URL = "http://localhost:5000"
 
 # Timeouts (in milliseconds)
-MAP_LOAD_TIMEOUT = 60000
-MARKER_LOAD_TIMEOUT = 10000
-TABLE_LOAD_TIMEOUT = 10000
+MAP_LOAD_TIMEOUT = 5000
+MARKER_LOAD_TIMEOUT = 5000
+TABLE_LOAD_TIMEOUT = 5000
 
 # Mobile device configurations for Playwright
 MOBILE_DEVICES = {
@@ -122,7 +122,12 @@ def page(page: Page, webpack_script: str) -> Generator[Page, None, None]:
 
     This fixture automatically routes requests to the webpack script URL
     and serves the cached version instead of hitting the network.
+    Sets desktop viewport size (1280x800) for consistent desktop testing.
+    Blocks HMR/websocket requests to prevent page refreshes during tests.
     """
+    # Set desktop viewport size
+    page.set_viewport_size({"width": 1280, "height": 800})
+
     def handle_webpack_route(route: Route) -> None:
         """Intercept webpack script requests and serve from cache"""
         route.fulfill(
@@ -131,8 +136,15 @@ def page(page: Page, webpack_script: str) -> Generator[Page, None, None]:
             body=webpack_script
         )
 
+    def block_hmr_route(route: Route) -> None:
+        """Block HMR/hot reload requests to prevent page refreshes"""
+        route.abort()
+
     # Setup route interception
     page.route(WEBPACK_SCRIPT_URL, handle_webpack_route)
+    # Block HMR websocket and hot update requests
+    page.route("**/ws", block_hmr_route)
+    page.route("**/*.hot-update.*", block_hmr_route)
 
     yield page
 
@@ -214,7 +226,14 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
             body=webpack_script
         )
 
+    def block_hmr_route(route: Route) -> None:
+        """Block HMR/hot reload requests to prevent page refreshes"""
+        route.abort()
+
     page.route(WEBPACK_SCRIPT_URL, handle_webpack_route)
+    # Block HMR websocket and hot update requests
+    page.route("**/ws", block_hmr_route)
+    page.route("**/*.hot-update.*", block_hmr_route)
 
     yield page
 
