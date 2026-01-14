@@ -39,17 +39,11 @@ class TestStress:
             start_time = time.time()
 
             # Navigate to the page
-            page.goto(BASE_URL)
+            page.goto(BASE_URL, wait_until="domcontentloaded")
 
-            # Wait for map container to be ready
-            map_container = page.locator("#map")
-            expect(map_container).to_be_visible(timeout=MAP_LOAD_TIMEOUT)
-
-            # Wait for locations API call to complete
-            with page.expect_response(
-                lambda response: "/api/locations" in response.url, timeout=MAP_LOAD_TIMEOUT
-            ):
-                pass  # Just wait for the response
+            # Wait for first marker/cluster to appear (indicates map is loaded)
+            first_marker = page.locator(".leaflet-marker-icon, .leaflet-marker-cluster").first
+            expect(first_marker).to_be_visible(timeout=MAP_LOAD_TIMEOUT)
 
             # Wait for markers to stabilize (stop increasing in count)
             # This ensures all initial markers are rendered
