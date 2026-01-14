@@ -23,7 +23,7 @@ e2e-tests: setup-test-data
 	$(MAKE) pytest-run PYTEST_SPEC="tests/basic"
 
 e2e-stress-tests-generate-data:
-	python cypress/support/generate_stress_test_data.py
+	python scripts/generate_stress_test_data.py
 
 e2e-stress-tests: setup-test-data
 	$(MAKE) pytest-run PYTEST_SPEC="tests/stress"

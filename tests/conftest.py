@@ -196,8 +196,13 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
             mobile_page.goto(BASE_URL)
             # ... test mobile-specific behavior
     """
-    # Get device_name from parametrize
-    device_name = request.node.callspec.params.get("device_name")
+    # Get device_name from parametrize (safely handle missing callspec)
+    callspec = getattr(request.node, "callspec", None)
+    if callspec is None:
+        raise ValueError(
+            "mobile_page fixture requires @pytest.mark.parametrize with 'device_name' parameter"
+        )
+    device_name = callspec.params.get("device_name")
     if not device_name:
         raise ValueError(
             "mobile_page fixture requires 'device_name' parameter from @pytest.mark.parametrize"

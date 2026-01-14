@@ -10,7 +10,7 @@ Provides utility functions for:
 
 from typing import Any
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import ElementHandle, Page, expect
 
 # Test data for Zwierzyniecka location
 EXPECTED_PLACE_ZWIERZYNIECKA = {
@@ -23,7 +23,7 @@ EXPECTED_PLACE_ZWIERZYNIECKA = {
 }
 
 
-def get_rightmost_marker(page: Page) -> Any:
+def get_rightmost_marker(page: Page) -> ElementHandle | None:
     """
     Workaround for selecting specific markers on the map.
     Finds the rightmost marker by comparing x-coordinates.
@@ -32,12 +32,13 @@ def get_rightmost_marker(page: Page) -> Any:
         page: Playwright page object
 
     Returns:
-        The rightmost marker element handle
+        The rightmost marker element handle, or None if no markers found
 
     TODO: Find a better way to select specific markers by their properties.
     Consider adding data-testid attributes to markers in the backend/frontend.
     """
-    return page.evaluate(
+    # Use evaluate_handle to return a proper element handle instead of serialized null
+    handle = page.evaluate_handle(
         """
         () => {
             const markers = document.querySelectorAll('.leaflet-marker-icon, .leaflet-marker-cluster');
@@ -56,6 +57,8 @@ def get_rightmost_marker(page: Page) -> Any:
         }
     """
     )
+    # Convert JSHandle to ElementHandle if it's an element, otherwise return None
+    return handle.as_element()
 
 
 def verify_popup_content(page: Page, expected_content: dict[str, Any]) -> None:

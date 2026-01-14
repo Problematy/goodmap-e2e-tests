@@ -2,11 +2,11 @@ on:
   workflow_call:
     inputs:
       goodmap-version:
-        required: true
+        required: false
         default: main
         type: string
       goodmap-frontend-version:
-        required: true
+        required: false
         default: main
         type: string
       e2e-tests-version:
