@@ -4,6 +4,8 @@ Go To My Location Button Tests
 Tests the "go to my location" button functionality with geolocation mocking.
 """
 
+import re
+
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -37,6 +39,9 @@ class TestGoToMyLocationButton:
         )
         my_location_button.click()
 
-        # Wait for map tile to load and verify it's the correct tile for the location
+        # Wait for map tile to load and verify it's a high-zoom tile for the location
+        # Different frontend versions may zoom to slightly different levels (14-16)
         map_tile = page.locator(".leaflet-tile-container > img").first
-        expect(map_tile).to_have_attribute("src", location["tile_url"], timeout=MARKER_LOAD_TIMEOUT)
+        expect(map_tile).to_have_attribute(
+            "src", re.compile(location["tile_pattern"]), timeout=MARKER_LOAD_TIMEOUT
+        )

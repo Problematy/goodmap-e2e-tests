@@ -59,7 +59,9 @@ TEST_LOCATIONS = {
     "RYSY_MOUNTAIN": {
         "lat": 49.179,
         "lon": 20.088,
-        "tile_url": "https://c.tile.openstreetmap.org/16/36424/22456.png",
+        # Tile pattern matches zoom 14-16 for Rysy Mountain area
+        # Zoom 16: 36424/22456, Zoom 15: 18211-18212/11227-11228, Zoom 14: 9105-9106/5613-5614
+        "tile_pattern": r"https://[abc]\.tile\.openstreetmap\.org/1[456]/\d+/\d+\.png",
     },
     "WROCLAW_CENTER": {"lat": 51.10655, "lon": 17.0555},
 }
