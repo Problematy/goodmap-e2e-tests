@@ -41,7 +41,9 @@ def get_rightmost_marker(page: Page) -> ElementHandle | None:
     handle = page.evaluate_handle(
         """
         () => {
-            const markers = document.querySelectorAll('.leaflet-marker-icon, .leaflet-marker-cluster');
+            const markers = document.querySelectorAll(
+                '.leaflet-marker-icon, .leaflet-marker-cluster'
+            );
             let rightmostMarker = null;
             let maxX = -Infinity;
 
