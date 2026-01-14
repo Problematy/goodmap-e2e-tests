@@ -132,8 +132,8 @@ def verify_problem_form(page: Page) -> None:
     expect(dropdown).to_be_visible()
 
     options_text = dropdown.locator("option").all_text_contents()
+    # Check that all problem type options exist
     expected_options = [
-        "Please choose an option",
         "this point is not here",
         "it's overloaded",
         "it's broken",
@@ -142,6 +142,11 @@ def verify_problem_form(page: Page) -> None:
 
     for expected_option in expected_options:
         assert expected_option in options_text, f"Option '{expected_option}' not found in dropdown"
+
+    # TODO: Remove after goodmap-frontend unifies - placeholder format may vary
+    assert any(
+        "Please choose an option" in opt for opt in options_text
+    ), "Placeholder option not found in dropdown"
 
     # Setup API response listener
     def is_report_location_post(response):
@@ -152,12 +157,14 @@ def verify_problem_form(page: Page) -> None:
         dropdown.select_option("other")
 
         # Fill in custom problem description
-        problem_input = form.get_by_label("Please describe:")
+        # TODO: Remove input[name="problem"] after frontend unifies - new version uses label
+        problem_input = form.locator('input[name="problem"], input[type="text"]').first
         expect(problem_input).to_be_visible()
         problem_input.fill("Custom issue description")
 
         # Submit the form
-        submit_button = form.get_by_role("button", name="Submit")
+        # TODO: Remove input[type="submit"] after goodmap-frontend unifies - new version uses button
+        submit_button = form.locator('input[type="submit"], button:has-text("Submit")').first
         expect(submit_button).to_be_visible()
         submit_button.click()
 
@@ -171,6 +178,7 @@ def verify_problem_form(page: Page) -> None:
     ), f"Expected message 'Location reported', got {response_body.get('message')}"
 
     # Verify success message appears and form disappears
+    # TODO: Remove comment after goodmap-frontend unifies - message container changed from p to div
     success_message = popup.get_by_text("Location reported")
     expect(success_message).to_be_visible()
     expect(form).not_to_be_visible()
