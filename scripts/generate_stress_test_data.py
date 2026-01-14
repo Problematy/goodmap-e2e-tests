@@ -49,7 +49,22 @@ def main():
 
     markers = [generate_marker() for _ in range(NUM_MARKERS)]
 
-    data = {"map": {"data": markers}}
+    data = {
+        "map": {
+            "data": markers,
+            "location_obligatory_fields": [
+                ["name", "str"],
+                ["accessible_by", "list"],
+                ["type_of_place", "str"],
+            ],
+            "categories": {
+                "accessible_by": ACCESS_OPTIONS,
+                "type_of_place": PLACE_TYPES,
+            },
+            "visible_data": ["accessible_by", "type_of_place"],
+            "meta_data": ["uuid"],
+        }
+    }
 
     print(f"Writing to {OUTPUT_FILE}...")
     with open(OUTPUT_FILE, "w") as f:
