@@ -79,6 +79,10 @@ jobs:
         disown $FRONTEND_PID
         sleep 3
 
+    - name: Setup test data
+      working-directory: e2e-tests
+      run: make setup-test-data
+
     - name: Start backend for e2e tests
       working-directory: e2e-tests
       run: |

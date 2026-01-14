@@ -19,13 +19,13 @@ pytest-run:
 setup-test-data:
 	cp e2e_test_data_template.json e2e_test_data.json
 
-e2e-tests: setup-test-data
+e2e-tests:
 	$(MAKE) pytest-run PYTEST_SPEC="tests/basic"
 
 e2e-stress-tests-generate-data:
 	python scripts/generate_stress_test_data.py
 
-e2e-stress-tests: setup-test-data
+e2e-stress-tests:
 	$(MAKE) pytest-run PYTEST_SPEC="tests/stress"
 
 run-e2e-env:
