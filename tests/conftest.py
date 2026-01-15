@@ -68,13 +68,13 @@ TEST_LOCATIONS = {
 }
 
 
-def pytest_configure(_config):
+def pytest_configure(config):  # noqa: ARG001
     """
     Pytest hook called before test collection.
     Fetches and caches the webpack script from the frontend dev server.
     """
     # In xdist, run this only on master (workers share FS)
-    if getattr(_config, "workerinput", None) is not None:
+    if getattr(config, "workerinput", None) is not None:
         return
 
     # Create cache directory if it doesn't exist
@@ -156,8 +156,6 @@ def page(page: Page, webpack_script: str) -> Page:
     page.route("**/*.hot-update.*", block_hmr_route)
 
     return page
-
-    # Cleanup is automatic with Playwright's page fixture
 
 
 @pytest.fixture
