@@ -141,6 +141,13 @@ def verify_problem_form(page: Page) -> None:
         page: Playwright page object
     """
     # Click "report a problem" link
+    # Forcibly remove webpack overlay that may intercept clicks (defense in depth)
+    page.evaluate(
+        """() => {
+            const overlay = document.getElementById('webpack-dev-server-client-overlay');
+            if (overlay) overlay.remove();
+        }"""
+    )
     report_link = page.locator("text=report a problem")
     expect(report_link).to_be_visible()
     report_link.click()
