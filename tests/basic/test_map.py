@@ -20,14 +20,14 @@ class TestMap:
         return
 
     def test_displays_filter_list_with_two_categories_with_5_items(self, page: Page):
-        """Verify filter list has correct number of checkboxes and category labels"""
-        # Check number of checkboxes
-        checkboxes = page.locator('input[type="checkbox"]')
+        """Verify filter list has correct number of checkboxes and category groups"""
+        # Check number of checkboxes (5 filter options)
+        checkboxes = page.get_by_role("checkbox")
         expect(checkboxes).to_have_count(5)
 
-        # Check number of category labels
-        category_labels = page.locator("form span")
-        expect(category_labels).to_have_count(2)
+        # Check that both category groups are present
+        expect(page.get_by_text("accessible_by")).to_be_visible()
+        expect(page.get_by_text("type_of_place")).to_be_visible()
 
     def test_should_not_have_scrollbars(self, page: Page):
         """Verify the page has no horizontal or vertical scrollbars"""

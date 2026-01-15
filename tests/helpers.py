@@ -118,15 +118,21 @@ def verify_popup_content(page: Page, expected_content: dict[str, Any]) -> None:
     if subtitle_by_class.count() > 0:
         expect(subtitle_by_class).to_have_text(expected_content["subtitle"])
     else:
-        # Fall back to finding subtitle by exact text match
-        expect(popup.get_by_text(expected_content["subtitle"], exact=True)).to_be_visible()
+        # Fall back to finding subtitle by text match (use .first as text may appear multiple times)
+        expect(popup.get_by_text(expected_content["subtitle"], exact=True).first).to_be_visible()
 
     # Verify categories
     # Note: We only check that category labels are visible
     # The values may appear in multiple places (subtitle + category value)
     # so we check for their presence at least once
+    # Category labels may use underscores (old) or spaces (new frontend)
     for category, value in expected_content["categories"]:
-        expect(popup.locator(f"text={category}")).to_be_visible()
+        # Try underscore version first, then space version
+        category_with_space = category.replace("_", " ")
+        category_label = popup.locator(f"text={category}").or_(
+            popup.locator(f"text={category_with_space}")
+        )
+        expect(category_label.first).to_be_visible()
         # Check that the value appears at least once in the popup
         expect(popup.get_by_text(value).first).to_be_visible()
 
