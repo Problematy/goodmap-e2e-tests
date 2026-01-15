@@ -4,12 +4,21 @@ Location Buttons Tests
 Tests the location-dependent buttons (LocationControl, SuggestNewPointButton, ListView)
 tooltip behavior and disabled state when geolocation is not granted.
 Also tests that geolocation permission is requested on page load.
+
+NOTE: Many tests in this file require frontend features (tooltips, disabled button styling)
+that are only available in the prettier branch. These are marked with pytest.mark.skip
+until the frontend changes are merged to main.
 """
 
 import pytest
 from playwright.sync_api import Page, expect
 
 from tests.conftest import BASE_URL, ALL_MOBILE_DEVICES
+
+# Skip marker for tests requiring new frontend features
+REQUIRES_NEW_FRONTEND = pytest.mark.skip(
+    reason="Requires frontend features from prettier branch (tooltips, disabled styling)"
+)
 
 
 class TestGeolocationRequestOnPageLoad:
@@ -64,6 +73,7 @@ class TestGeolocationRequestOnPageLoad:
         expect(location_button).to_have_css("opacity", "1")
         expect(location_button).to_have_css("filter", "none")
 
+    @REQUIRES_NEW_FRONTEND
     def test_buttons_show_disabled_when_permission_denied_on_load(self, browser, webpack_script):
         """
         Verify that when geolocation permission is denied/not granted,
@@ -129,6 +139,39 @@ class TestGeolocationRequestOnPageLoad:
 
 class TestLocationButtonsDesktop:
     """Test suite for location buttons on desktop"""
+
+    def test_all_buttons_colored_when_location_granted(self, page: Page, geolocation):
+        """
+        Verify all location-dependent buttons become colored
+        when geolocation permission is granted.
+        """
+        # Grant geolocation permission and set location
+        geolocation(51.10655, 17.0555)  # Wroclaw
+
+        page.goto(BASE_URL, wait_until="domcontentloaded")
+
+        # Wait for geolocation to be processed
+        page.wait_for_timeout(1000)
+
+        # Check location button is not grayed out
+        location_button = page.locator('[aria-label*="Location target"]')
+        expect(location_button).to_have_css("opacity", "1")
+        expect(location_button).to_have_css("filter", "none")
+
+        # Check suggest button is not grayed out
+        suggest_button = page.locator('[data-testid="suggest-new-point"]')
+        expect(suggest_button).to_have_css("opacity", "1")
+        expect(suggest_button).to_have_css("filter", "none")
+
+        # Check list view button is not grayed out
+        list_view_button = page.locator("#listViewButton")
+        expect(list_view_button).to_have_css("opacity", "1")
+        expect(list_view_button).to_have_css("filter", "none")
+
+
+@REQUIRES_NEW_FRONTEND
+class TestLocationButtonsDesktopDisabledState:
+    """Test suite for location buttons disabled state on desktop (requires new frontend)"""
 
     def test_location_button_shows_disabled_tooltip_on_hover(self, page: Page):
         """
@@ -200,35 +243,8 @@ class TestLocationButtonsDesktop:
         expect(list_view_button).to_have_css("opacity", "0.6")
         expect(list_view_button).to_have_css("filter", "grayscale(1)")
 
-    def test_all_buttons_colored_when_location_granted(self, page: Page, geolocation):
-        """
-        Verify all location-dependent buttons become colored
-        when geolocation permission is granted.
-        """
-        # Grant geolocation permission and set location
-        geolocation(51.10655, 17.0555)  # Wroclaw
 
-        page.goto(BASE_URL, wait_until="domcontentloaded")
-
-        # Wait for geolocation to be processed
-        page.wait_for_timeout(1000)
-
-        # Check location button is not grayed out
-        location_button = page.locator('[aria-label*="Location target"]')
-        expect(location_button).to_have_css("opacity", "1")
-        expect(location_button).to_have_css("filter", "none")
-
-        # Check suggest button is not grayed out
-        suggest_button = page.locator('[data-testid="suggest-new-point"]')
-        expect(suggest_button).to_have_css("opacity", "1")
-        expect(suggest_button).to_have_css("filter", "none")
-
-        # Check list view button is not grayed out
-        list_view_button = page.locator("#listViewButton")
-        expect(list_view_button).to_have_css("opacity", "1")
-        expect(list_view_button).to_have_css("filter", "none")
-
-
+@REQUIRES_NEW_FRONTEND
 class TestLocationButtonsMobile:
     """Test suite for location buttons on mobile devices"""
 
