@@ -12,6 +12,18 @@ from typing import Any
 
 from playwright.sync_api import ElementHandle, Page, expect
 
+
+def remove_webpack_overlay(page: Page) -> None:
+    """Remove webpack-dev-server overlay that can intercept clicks."""
+    page.evaluate(
+        """
+        () => {
+            const overlay = document.getElementById('webpack-dev-server-client-overlay');
+            if (overlay) overlay.remove();
+        }
+        """
+    )
+
 # Test data for Zwierzyniecka location
 EXPECTED_PLACE_ZWIERZYNIECKA = {
     "title": "Zwierzyniecka",
@@ -70,6 +82,10 @@ def verify_popup_content(page: Page, expected_content: dict[str, Any]) -> None:
     Scopes assertions to .leaflet-popup-content or .MuiDialogContent-root
     to avoid false positives from other elements on the page.
 
+    Uses flexible selectors that work with multiple frontend versions:
+    - Tries CSS class selectors first (.point-title, .point-subtitle)
+    - Falls back to text-based matching for cross-version compatibility
+
     Args:
         page: Playwright page object
         expected_content: Expected content dictionary with keys:
@@ -89,9 +105,21 @@ def verify_popup_content(page: Page, expected_content: dict[str, Any]) -> None:
     # Scope to popup container
     popup = page.locator(".leaflet-popup-content, .MuiDialogContent-root")
 
-    # Verify title and subtitle
-    expect(popup.locator(".point-title")).to_have_text(expected_content["title"])
-    expect(popup.locator(".point-subtitle")).to_have_text(expected_content["subtitle"])
+    # Verify title - try CSS class first, fall back to text matching
+    title_by_class = popup.locator(".point-title")
+    if title_by_class.count() > 0:
+        expect(title_by_class).to_have_text(expected_content["title"])
+    else:
+        # Fall back to finding title by exact text match
+        expect(popup.get_by_text(expected_content["title"], exact=True)).to_be_visible()
+
+    # Verify subtitle - try CSS class first, fall back to text matching
+    subtitle_by_class = popup.locator(".point-subtitle")
+    if subtitle_by_class.count() > 0:
+        expect(subtitle_by_class).to_have_text(expected_content["subtitle"])
+    else:
+        # Fall back to finding subtitle by exact text match
+        expect(popup.get_by_text(expected_content["subtitle"], exact=True)).to_be_visible()
 
     # Verify categories
     # Note: We only check that category labels are visible
@@ -119,6 +147,8 @@ def verify_problem_form(page: Page) -> None:
         page: Playwright page object
     """
     # Click "report a problem" link
+    # Remove any webpack overlay that might intercept clicks
+    remove_webpack_overlay(page)
     report_link = page.locator("text=report a problem")
     expect(report_link).to_be_visible()
     report_link.click()

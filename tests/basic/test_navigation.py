@@ -51,6 +51,15 @@ class TestNavigationMenu:
         heading = page.get_by_role("heading", name="About", level=1)
         expect(heading).to_be_visible()
 
+    def test_about_page_loads_correctly(self, page: Page):
+        """Verify About page loads with correct title and heading"""
+        page.goto(f"{BASE_URL}/blog/page/about", wait_until="domcontentloaded")
+
+        # Verify page title and heading
+        expect(page).to_have_title("About")
+        heading = page.get_by_role("heading", name="About", level=1)
+        expect(heading).to_be_visible()
+
     def test_home_link_navigates_back_to_map(self, page: Page):
         """Verify clicking home logo navigates back to map from About page"""
         # Navigate to About page first

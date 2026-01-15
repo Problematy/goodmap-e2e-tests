@@ -155,6 +155,17 @@ def page(page: Page, webpack_script: str) -> Page:
     page.route("**/ws", block_hmr_route)
     page.route("**/*.hot-update.*", block_hmr_route)
 
+    # Remove webpack-dev-server overlay that can intercept clicks
+    page.add_init_script(
+        """
+        const observer = new MutationObserver(() => {
+            const overlay = document.getElementById('webpack-dev-server-client-overlay');
+            if (overlay) overlay.remove();
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        """
+    )
+
     return page
 
 
@@ -252,6 +263,17 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
     # Block HMR websocket and hot update requests
     page.route("**/ws", block_hmr_route)
     page.route("**/*.hot-update.*", block_hmr_route)
+
+    # Remove webpack-dev-server overlay that can intercept clicks
+    page.add_init_script(
+        """
+        const observer = new MutationObserver(() => {
+            const overlay = document.getElementById('webpack-dev-server-client-overlay');
+            if (overlay) overlay.remove();
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        """
+    )
 
     yield page
 
