@@ -77,7 +77,7 @@ TEST_LOCATIONS = {
 }
 
 
-def pytest_configure(config):  # noqa: ARG001
+def pytest_configure(config):
     """
     Pytest hook called before test collection.
     Fetches and caches the webpack script from the frontend dev server.
@@ -401,17 +401,17 @@ def performance_tracker() -> Callable:
 
 # Export constants for use in tests
 __all__ = [
+    "ALL_MOBILE_DEVICES",
     "BASE_URL",
     "MAP_LOAD_TIMEOUT",
     "MARKER_LOAD_TIMEOUT",
-    "TABLE_LOAD_TIMEOUT",
     "MOBILE_DEVICES",
-    "ALL_MOBILE_DEVICES",
-    "UI_VERTICAL_ALIGNMENT_TOLERANCE",
+    "TABLE_LOAD_TIMEOUT",
     "TEST_LOCATIONS",
-    "webpack_script",
-    "page",
-    "window_open_stub",
+    "UI_VERTICAL_ALIGNMENT_TOLERANCE",
     "geolocation",
+    "page",
     "performance_tracker",
+    "webpack_script",
+    "window_open_stub",
 ]

@@ -102,7 +102,9 @@ class TestNavigationBarForSmallDevices:
         print(f"Logo Center: {logo_center}")
 
         # Check each hamburger menu center position
-        hamburgers = mobile_page.locator(".navbar-toggler").all()
+        hamburger_locator = mobile_page.locator(".navbar-toggler")
+        expect(hamburger_locator.first).to_be_visible()
+        hamburgers = hamburger_locator.all()
         for i, hamburger in enumerate(hamburgers):
             expect(hamburger).to_be_visible()
             hamburger_box = hamburger.bounding_box()
