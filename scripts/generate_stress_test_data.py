@@ -63,7 +63,22 @@ def main():
             },
             "visible_data": ["accessible_by", "type_of_place"],
             "meta_data": ["uuid"],
-        }
+        },
+        "site_content": {
+            "pages": [],
+            "menu_items": {
+                "en": [{"name": "Map", "url": "/"}],
+                "pl": [{"name": "Mapa", "url": "/"}],
+            },
+            "logo_url": "",
+            "font": {
+                "name": "Poppins",
+                "url": "https://fonts.googleapis.com/css2?family=Poppins",
+            },
+            "primary_color": "#FFFFFF",
+            "secondary_color": "#245466",
+            "left_bar_width": "300px",
+        },
     }
 
     print(f"Writing to {OUTPUT_FILE}...")

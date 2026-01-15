@@ -9,7 +9,7 @@ import time
 
 from playwright.sync_api import Page, expect
 
-from tests.conftest import BASE_URL, MAP_LOAD_TIMEOUT
+from tests.conftest import BASE_URL
 
 
 class TestStress:
@@ -42,8 +42,9 @@ class TestStress:
             page.goto(BASE_URL, wait_until="domcontentloaded")
 
             # Wait for first marker/cluster to appear (indicates map is loaded)
+            # Use longer timeout for stress test since 100k markers take longer to load
             first_marker = page.locator(".leaflet-marker-icon, .leaflet-marker-cluster").first
-            expect(first_marker).to_be_visible(timeout=MAP_LOAD_TIMEOUT)
+            expect(first_marker).to_be_visible(timeout=max_allowed_time_ms)
 
             # Wait for markers to stabilize (stop increasing in count)
             # This ensures all initial markers are rendered
