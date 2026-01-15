@@ -30,7 +30,15 @@ MARKER_LOAD_TIMEOUT = 5000
 TABLE_LOAD_TIMEOUT = 5000
 
 # Script to remove webpack-dev-server overlay that can intercept clicks
+# Uses both CSS (immediate, synchronous) and MutationObserver (cleanup)
 WEBPACK_OVERLAY_REMOVAL_SCRIPT = """
+// Inject CSS immediately to prevent overlay from intercepting clicks
+// This is synchronous and works even before the overlay is added to DOM
+const style = document.createElement('style');
+style.textContent = '#webpack-dev-server-client-overlay { display: none !important; pointer-events: none !important; }';
+document.head.appendChild(style);
+
+// Also use MutationObserver to remove overlay from DOM entirely (belt and suspenders)
 const observer = new MutationObserver(() => {
     const overlay = document.getElementById('webpack-dev-server-client-overlay');
     if (overlay) overlay.remove();
