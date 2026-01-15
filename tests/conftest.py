@@ -29,6 +29,15 @@ MAP_LOAD_TIMEOUT = 5000
 MARKER_LOAD_TIMEOUT = 5000
 TABLE_LOAD_TIMEOUT = 5000
 
+# Script to remove webpack-dev-server overlay that can intercept clicks
+WEBPACK_OVERLAY_REMOVAL_SCRIPT = """
+const observer = new MutationObserver(() => {
+    const overlay = document.getElementById('webpack-dev-server-client-overlay');
+    if (overlay) overlay.remove();
+});
+observer.observe(document.documentElement, { childList: true, subtree: true });
+"""
+
 # Mobile device configurations for Playwright
 MOBILE_DEVICES = {
     "iphone-x": {
@@ -156,15 +165,7 @@ def page(page: Page, webpack_script: str) -> Page:
     page.route("**/*.hot-update.*", block_hmr_route)
 
     # Remove webpack-dev-server overlay that can intercept clicks
-    page.add_init_script(
-        """
-        const observer = new MutationObserver(() => {
-            const overlay = document.getElementById('webpack-dev-server-client-overlay');
-            if (overlay) overlay.remove();
-        });
-        observer.observe(document.documentElement, { childList: true, subtree: true });
-        """
-    )
+    page.add_init_script(WEBPACK_OVERLAY_REMOVAL_SCRIPT)
 
     return page
 
@@ -265,15 +266,7 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
     page.route("**/*.hot-update.*", block_hmr_route)
 
     # Remove webpack-dev-server overlay that can intercept clicks
-    page.add_init_script(
-        """
-        const observer = new MutationObserver(() => {
-            const overlay = document.getElementById('webpack-dev-server-client-overlay');
-            if (overlay) overlay.remove();
-        });
-        observer.observe(document.documentElement, { childList: true, subtree: true });
-        """
-    )
+    page.add_init_script(WEBPACK_OVERLAY_REMOVAL_SCRIPT)
 
     yield page
 

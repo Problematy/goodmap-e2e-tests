@@ -12,18 +12,6 @@ from typing import Any
 
 from playwright.sync_api import ElementHandle, Page, expect
 
-
-def remove_webpack_overlay(page: Page) -> None:
-    """Remove webpack-dev-server overlay that can intercept clicks."""
-    page.evaluate(
-        """
-        () => {
-            const overlay = document.getElementById('webpack-dev-server-client-overlay');
-            if (overlay) overlay.remove();
-        }
-        """
-    )
-
 # Test data for Zwierzyniecka location
 EXPECTED_PLACE_ZWIERZYNIECKA = {
     "title": "Zwierzyniecka",
@@ -153,8 +141,6 @@ def verify_problem_form(page: Page) -> None:
         page: Playwright page object
     """
     # Click "report a problem" link
-    # Remove any webpack overlay that might intercept clicks
-    remove_webpack_overlay(page)
     report_link = page.locator("text=report a problem")
     expect(report_link).to_be_visible()
     report_link.click()

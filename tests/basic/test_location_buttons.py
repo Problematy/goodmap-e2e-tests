@@ -13,7 +13,7 @@ until the frontend changes are merged to main.
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.conftest import BASE_URL, ALL_MOBILE_DEVICES
+from tests.conftest import ALL_MOBILE_DEVICES, BASE_URL
 
 # Skip marker for tests requiring new frontend features
 REQUIRES_NEW_FRONTEND = pytest.mark.skip(
@@ -34,26 +34,32 @@ class TestGeolocationRequestOnPageLoad:
         geolocation_requested = {"value": False}
 
         # Intercept geolocation API calls
-        page.add_init_script("""
+        page.add_init_script(
+            """
             const originalGetCurrentPosition = navigator.geolocation.getCurrentPosition;
             navigator.geolocation.getCurrentPosition = function(success, error, options) {
                 window.__geolocationRequested = true;
-                return originalGetCurrentPosition.call(navigator.geolocation, success, error, options);
+                return originalGetCurrentPosition.call(
+                    navigator.geolocation, success, error, options
+                );
             };
-        """)
+        """
+        )
 
         # Navigate to page
         page.goto(BASE_URL, wait_until="domcontentloaded")
 
-        # Wait a bit for the LocationContext useEffect to fire
-        page.wait_for_timeout(500)
+        # Wait for the geolocation request to be made (LocationContext useEffect)
+        page.wait_for_function("() => window.__geolocationRequested === true", timeout=5000)
 
         # Check if geolocation was requested by evaluating the flag we set
-        geolocation_requested["value"] = page.evaluate("() => window.__geolocationRequested === true")
-
-        assert geolocation_requested["value"], (
-            "Geolocation should be requested automatically on page load"
+        geolocation_requested["value"] = page.evaluate(
+            "() => window.__geolocationRequested === true"
         )
+
+        assert geolocation_requested[
+            "value"
+        ], "Geolocation should be requested automatically on page load"
 
     def test_buttons_respond_to_granted_permission_on_load(self, page: Page, geolocation):
         """
@@ -65,12 +71,9 @@ class TestGeolocationRequestOnPageLoad:
 
         page.goto(BASE_URL, wait_until="domcontentloaded")
 
-        # Wait for geolocation callback to be processed
-        page.wait_for_timeout(1000)
-
-        # Verify buttons are active (not grayed out)
+        # Verify buttons are active (not grayed out) - use explicit wait with timeout
         location_button = page.locator('[aria-label*="Location target"]')
-        expect(location_button).to_have_css("opacity", "1")
+        expect(location_button).to_have_css("opacity", "1", timeout=5000)
         expect(location_button).to_have_css("filter", "none")
 
     @REQUIRES_NEW_FRONTEND
@@ -112,7 +115,9 @@ class TestGeolocationRequestOnPageLoad:
         # Setup webpack route interception
         def handle_webpack_route(route):
             route.fulfill(
-                status=200, content_type="application/javascript; charset=utf-8", body=webpack_script
+                status=200,
+                content_type="application/javascript; charset=utf-8",
+                body=webpack_script,
             )
 
         def block_hmr_route(route):
@@ -125,12 +130,9 @@ class TestGeolocationRequestOnPageLoad:
         try:
             page.goto(BASE_URL, wait_until="domcontentloaded")
 
-            # Wait for geolocation request to complete (with denial)
-            page.wait_for_timeout(500)
-
-            # Verify buttons are disabled (grayed out)
+            # Verify buttons are disabled (grayed out) - use explicit wait with timeout
             location_button = page.locator('[aria-label*="Location target"]')
-            expect(location_button).to_have_css("opacity", "0.6")
+            expect(location_button).to_have_css("opacity", "0.6", timeout=5000)
             expect(location_button).to_have_css("filter", "grayscale(1)")
         finally:
             page.close()
@@ -150,12 +152,9 @@ class TestLocationButtonsDesktop:
 
         page.goto(BASE_URL, wait_until="domcontentloaded")
 
-        # Wait for geolocation to be processed
-        page.wait_for_timeout(1000)
-
-        # Check location button is not grayed out
+        # Check location button is not grayed out - use explicit wait with timeout
         location_button = page.locator('[aria-label*="Location target"]')
-        expect(location_button).to_have_css("opacity", "1")
+        expect(location_button).to_have_css("opacity", "1", timeout=5000)
         expect(location_button).to_have_css("filter", "none")
 
         # Check suggest button is not grayed out
@@ -313,18 +312,16 @@ class TestLocationButtonsMobile:
             ('[data-testid="suggest-new-point"]', "Suggest"),
         ]
 
-        for selector, name in buttons:
+        for selector, _name in buttons:
             # Tap the button
             button = mobile_page.locator(selector)
             button.click()
 
             # Check tooltip appears
             tooltip = mobile_page.locator('[role="tooltip"]')
-            expect(tooltip).to_be_visible(
-                timeout=2000
-            ), f"{name} button should show tooltip on tap"
+            expect(tooltip).to_be_visible(timeout=2000)
             expect(tooltip).to_contain_text("Location services are disabled")
 
-            # Click elsewhere to dismiss tooltip
+            # Click elsewhere to dismiss tooltip and wait for it to disappear
             mobile_page.locator("body").click(position={"x": 10, "y": 10})
-            mobile_page.wait_for_timeout(500)
+            expect(tooltip).not_to_be_visible(timeout=2000)
