@@ -12,6 +12,7 @@ import json
 from collections.abc import Callable, Generator
 from pathlib import Path
 from urllib.error import URLError
+from urllib.parse import urlparse
 from urllib.request import urlopen
 
 import pytest
@@ -67,27 +68,41 @@ TEST_LOCATIONS = {
 }
 
 
-def pytest_configure(config):
+def pytest_configure(_config):
     """
     Pytest hook called before test collection.
     Fetches and caches the webpack script from the frontend dev server.
     """
+    # In xdist, run this only on master (workers share FS)
+    if getattr(_config, "workerinput", None) is not None:
+        return
+
     # Create cache directory if it doesn't exist
-    CACHE_DIR.mkdir(exist_ok=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     # Fetch webpack script if not cached
     if not CACHE_FILE.exists():
         print(f"\nFetching webpack script from {WEBPACK_SCRIPT_URL}...")
         try:
-            with urlopen(WEBPACK_SCRIPT_URL, timeout=10) as response:
+            # Validate URL scheme and hostname (Ruff S310)
+            parsed = urlparse(WEBPACK_SCRIPT_URL)
+            if parsed.scheme not in {"http", "https"} or parsed.hostname not in {
+                "localhost",
+                "127.0.0.1",
+            }:
+                raise ValueError(f"Refusing non-local URL: {WEBPACK_SCRIPT_URL}")
+
+            with urlopen(WEBPACK_SCRIPT_URL, timeout=10) as response:  # noqa: S310
                 script_content = response.read().decode("utf-8")
 
             # Validate script content
             if len(script_content) < 100:
                 raise ValueError("Webpack script content is too short, likely invalid")
 
-            # Save to cache
-            CACHE_FILE.write_text(script_content)
+            # Save to cache (atomic write via temp file)
+            tmp = CACHE_FILE.with_suffix(".js.tmp")
+            tmp.write_text(script_content, encoding="utf-8")
+            tmp.replace(CACHE_FILE)
             print(f"Webpack script cached to {CACHE_FILE} ({len(script_content)} bytes)")
 
         except (URLError, TimeoutError) as e:
@@ -210,7 +225,12 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
             "mobile_page fixture requires 'device_name' parameter from @pytest.mark.parametrize"
         )
 
-    device_config = MOBILE_DEVICES[device_name]
+    try:
+        device_config = MOBILE_DEVICES[device_name]
+    except KeyError as e:
+        raise ValueError(
+            f"Unknown device_name={device_name}. Expected one of: {list(MOBILE_DEVICES)}"
+        ) from e
 
     # Create a new context with mobile user agent
     context = browser.new_context(
@@ -294,7 +314,7 @@ def geolocation(context: BrowserContext) -> Callable[[float, float], None]:
 
 
 @pytest.fixture
-def performance_tracker(page: Page) -> Callable:
+def performance_tracker() -> Callable:
     """
     Fixture for tracking performance metrics in stress tests.
 
@@ -356,9 +376,12 @@ def performance_tracker(page: Page) -> Callable:
                 json.dump(stats, f, indent=2)
 
             print(f"\nPerformance data saved to {filepath}")
-            print(f"Average time: {stats['avgTime']}ms")
-            print(f"Max time: {stats['maxTime']}ms")
-            print(f"Passed: {stats['passed']}")
+            if stats:
+                print(f"Average time: {stats['avgTime']}ms")
+                print(f"Max time: {stats['maxTime']}ms")
+                print(f"Passed: {stats['passed']}")
+            else:
+                print("No runs recorded.")
 
     return PerformanceTracker()
 

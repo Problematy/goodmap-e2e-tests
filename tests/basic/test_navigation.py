@@ -85,6 +85,7 @@ class TestNavigationBarForSmallDevices:
 
         # Get logo position and center
         logo = mobile_page.locator(".navbar-brand")
+        expect(logo).to_be_visible()
         logo_box = logo.bounding_box()
         assert logo_box is not None, "Logo not found"
 
@@ -94,6 +95,7 @@ class TestNavigationBarForSmallDevices:
         # Check each hamburger menu center position
         hamburgers = mobile_page.locator(".navbar-toggler").all()
         for i, hamburger in enumerate(hamburgers):
+            expect(hamburger).to_be_visible()
             hamburger_box = hamburger.bounding_box()
             assert hamburger_box is not None, f"Hamburger {i+1} not found"
 
@@ -141,6 +143,7 @@ class TestNavigationBarForSmallDevices:
 
         # Get navbar bottom position
         navbar = mobile_page.locator(".navbar")
+        expect(navbar).to_be_visible()
         navbar_box = navbar.bounding_box()
         assert navbar_box is not None, "Navbar not found"
         navbar_bottom = navbar_box["y"] + navbar_box["height"]

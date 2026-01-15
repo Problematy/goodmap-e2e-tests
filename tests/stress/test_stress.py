@@ -96,8 +96,8 @@ class TestStress:
 
             # Verify minimum number of markers are loaded
             assert (
-                marker_count > min_expected_markers
-            ), f"Expected more than {min_expected_markers} markers but got {marker_count}"
+                marker_count >= min_expected_markers
+            ), f"Expected at least {min_expected_markers} markers but got {marker_count}"
 
         # Save performance data to JSON file
         performance_tracker.save("test-results/stress-test-perf.json", max_allowed_time_ms)
