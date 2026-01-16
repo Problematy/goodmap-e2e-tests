@@ -20,11 +20,6 @@ REQUIRES_NEW_FRONTEND = pytest.mark.skip(
     reason="Requires frontend features from prettier branch (tooltips, disabled styling)"
 )
 
-# Skip marker for tests requiring OLD frontend behavior (auto-request geolocation on load)
-REQUIRES_OLD_GEOLOCATION = pytest.mark.skip(
-    reason="Requires old frontend behavior (auto-request geolocation on load) - not compatible with prettier branch"
-)
-
 
 class TestGeolocationRequestOnPageLoad:
     """Test suite verifying geolocation behavior on page load"""
@@ -62,14 +57,10 @@ class TestGeolocationRequestOnPageLoad:
         # Check which behavior is present
         geolocation_requested = page.evaluate("() => window.__geolocationRequested")
 
-        # Both behaviors are valid - just log which one we detected
-        if geolocation_requested:
-            print("Detected OLD frontend: geolocation auto-requested on load")
-        else:
-            print("Detected NEW frontend: geolocation NOT auto-requested (privacy-friendly)")
-
-        # Test passes either way - the behavior is consistent within each version
-        assert True
+        # Verify the page loaded correctly regardless of geolocation behavior
+        # The location button should always be visible
+        location_button = page.locator('[aria-label*="Location target"]')
+        expect(location_button).to_be_visible(timeout=5000)
 
     def test_buttons_respond_to_granted_permission_on_load(self, page: Page, geolocation):
         """
