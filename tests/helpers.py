@@ -140,29 +140,19 @@ def verify_problem_form(page: Page) -> None:
     Args:
         page: Playwright page object
     """
-    # Click "report a problem" link
-    # Use force=True to bypass webpack overlay that may intercept clicks on CI
-    # Scroll into view first since force=True skips scrolling
+    # Click "report a problem" link using JavaScript to bypass any overlay issues
+    # force=True still clicks at coordinates which can be intercepted on CI
     report_link = page.locator("text=report a problem")
     expect(report_link).to_be_visible()
     report_link.scroll_into_view_if_needed()
-    # Brief wait for scroll animation to complete on small viewports
-    page.wait_for_timeout(100)
-    report_link.click(force=True)
+    # Use dispatchEvent to trigger click directly on the element (cannot be intercepted)
+    report_link.evaluate("el => el.click()")
 
     # Wait for form to appear inside the popup
     # Scope to popup to avoid matching the filter form
     popup = page.locator(".leaflet-popup-content, .MuiDialogContent-root")
     form = popup.locator("form")
-
-    # Retry click if form doesn't appear (handles race conditions on small viewports)
-    try:
-        expect(form).to_be_visible(timeout=2000)
-    except AssertionError:
-        report_link.scroll_into_view_if_needed()
-        page.wait_for_timeout(100)
-        report_link.click(force=True)
-        expect(form).to_be_visible(timeout=3000)
+    expect(form).to_be_visible()
 
     # Verify dropdown has expected options
     dropdown = form.locator("select")
@@ -201,9 +191,10 @@ def verify_problem_form(page: Page) -> None:
 
         # Submit the form
         # TODO: Remove input[type="submit"] after goodmap-frontend unifies - new version uses button
+        # Use JavaScript click to bypass webpack overlay that may intercept clicks on CI
         submit_button = form.locator('input[type="submit"], button:has-text("Submit")').first
         expect(submit_button).to_be_visible()
-        submit_button.click()
+        submit_button.evaluate("el => el.click()")
 
     # Verify API response
     response = response_info.value
