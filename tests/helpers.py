@@ -141,16 +141,10 @@ def verify_problem_form(page: Page) -> None:
         page: Playwright page object
     """
     # Click "report a problem" link
-    # Forcibly remove webpack overlay that may intercept clicks (defense in depth)
-    page.evaluate(
-        """() => {
-            const overlay = document.getElementById('webpack-dev-server-client-overlay');
-            if (overlay) overlay.remove();
-        }"""
-    )
+    # Use force=True to bypass webpack overlay that may intercept clicks on CI
     report_link = page.locator("text=report a problem")
     expect(report_link).to_be_visible()
-    report_link.click()
+    report_link.click(force=True)
 
     # Wait for form to appear inside the popup
     # Scope to popup to avoid matching the filter form
