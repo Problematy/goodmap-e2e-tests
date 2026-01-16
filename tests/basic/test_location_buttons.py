@@ -22,20 +22,18 @@ REQUIRES_NEW_FRONTEND = pytest.mark.skip(
 
 
 class TestGeolocationRequestOnPageLoad:
-    """Test suite verifying geolocation is requested on page load"""
+    """Test suite verifying geolocation behavior on page load"""
 
-    def test_geolocation_requested_on_page_load(self, page: Page):
+    def test_geolocation_not_requested_without_prior_permission(self, page: Page):
         """
-        Verify that the app requests geolocation permission when the page loads.
-        This is detected by checking for the geolocation permission prompt or
-        the resulting state of location-dependent buttons.
+        Verify that the app does NOT request geolocation permission on page load
+        when permission hasn't been granted yet. This is privacy-friendly behavior -
+        we only prompt when user explicitly clicks a location button.
         """
-        # Track if geolocation was requested
-        geolocation_requested = {"value": False}
-
         # Intercept geolocation API calls
         page.add_init_script(
             """
+            window.__geolocationRequested = false;
             const originalGetCurrentPosition = navigator.geolocation.getCurrentPosition;
             navigator.geolocation.getCurrentPosition = function(success, error, options) {
                 window.__geolocationRequested = true;
@@ -49,17 +47,16 @@ class TestGeolocationRequestOnPageLoad:
         # Navigate to page
         page.goto(BASE_URL, wait_until="domcontentloaded")
 
-        # Wait for the geolocation request to be made (LocationContext useEffect)
-        page.wait_for_function("() => window.__geolocationRequested === true", timeout=5000)
+        # Wait a moment for any async initialization
+        page.wait_for_timeout(1000)
 
-        # Check if geolocation was requested by evaluating the flag we set
-        geolocation_requested["value"] = page.evaluate(
-            "() => window.__geolocationRequested === true"
+        # Verify geolocation was NOT requested automatically
+        geolocation_requested = page.evaluate("() => window.__geolocationRequested")
+
+        assert not geolocation_requested, (
+            "Geolocation should NOT be requested automatically on page load "
+            "when permission hasn't been granted"
         )
-
-        assert geolocation_requested[
-            "value"
-        ], "Geolocation should be requested automatically on page load"
 
     def test_buttons_respond_to_granted_permission_on_load(self, page: Page, geolocation):
         """
