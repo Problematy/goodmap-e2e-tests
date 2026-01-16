@@ -227,41 +227,7 @@ class TestLocationButtonsMobile:
         expect(tooltip).to_contain_text("Location services are disabled")
 
     @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
-    def test_location_button_shows_tooltip_on_tap(self, mobile_page: Page, device_name: str):
-        """
-        Verify location button shows tooltip immediately on tap
-        when geolocation is not granted (mobile).
-        """
-        mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
-
-        # Tap the location button
-        location_button = mobile_page.locator('[aria-label*="Location target"]')
-        location_button.click()
-
-        # Check tooltip appears with disabled message
-        tooltip = mobile_page.locator('[role="tooltip"]')
-        expect(tooltip).to_be_visible()
-        expect(tooltip).to_contain_text("Location services are disabled")
-
-    @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
-    def test_suggest_button_shows_tooltip_on_tap(self, mobile_page: Page, device_name: str):
-        """
-        Verify suggest button shows tooltip immediately on tap
-        when geolocation is not granted (mobile).
-        """
-        mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
-
-        # Tap the suggest button
-        suggest_button = mobile_page.locator('[data-testid="suggest-new-point"]')
-        suggest_button.click()
-
-        # Check tooltip appears with disabled message
-        tooltip = mobile_page.locator('[role="tooltip"]')
-        expect(tooltip).to_be_visible()
-        expect(tooltip).to_contain_text("Location services are disabled")
-
-    @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
-    def test_all_buttons_consistent_tooltip_on_tap(self, mobile_page: Page, device_name: str):
+    def test_all_buttons_show_tooltip_on_tap(self, mobile_page: Page, device_name: str):
         """
         Verify all three location buttons show tooltips consistently on tap (mobile).
         Tests that enterTouchDelay=0 is working for all buttons.
