@@ -142,15 +142,27 @@ def verify_problem_form(page: Page) -> None:
     """
     # Click "report a problem" link
     # Use force=True to bypass webpack overlay that may intercept clicks on CI
+    # Scroll into view first since force=True skips scrolling
     report_link = page.locator("text=report a problem")
     expect(report_link).to_be_visible()
+    report_link.scroll_into_view_if_needed()
+    # Brief wait for scroll animation to complete on small viewports
+    page.wait_for_timeout(100)
     report_link.click(force=True)
 
     # Wait for form to appear inside the popup
     # Scope to popup to avoid matching the filter form
     popup = page.locator(".leaflet-popup-content, .MuiDialogContent-root")
     form = popup.locator("form")
-    expect(form).to_be_visible()
+
+    # Retry click if form doesn't appear (handles race conditions on small viewports)
+    try:
+        expect(form).to_be_visible(timeout=2000)
+    except AssertionError:
+        report_link.scroll_into_view_if_needed()
+        page.wait_for_timeout(100)
+        report_link.click(force=True)
+        expect(form).to_be_visible(timeout=3000)
 
     # Verify dropdown has expected options
     dropdown = form.locator("select")

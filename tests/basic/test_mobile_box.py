@@ -81,6 +81,7 @@ class TestPopupOnMobile:
             '.MuiIconButton-root[aria-label="close"], .leaflet-popup-close-button'
         )
         expect(close_button).to_be_visible()
+        close_button.scroll_into_view_if_needed()
         close_button.click(force=True)
 
         # Verify dialog is closed
