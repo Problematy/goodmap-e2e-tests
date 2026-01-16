@@ -20,15 +20,63 @@ REQUIRES_NEW_FRONTEND = pytest.mark.skip(
     reason="Requires frontend features from prettier branch (tooltips, disabled styling)"
 )
 
+# Skip marker for tests requiring OLD frontend behavior (auto-request geolocation on load)
+REQUIRES_OLD_GEOLOCATION = pytest.mark.skip(
+    reason="Requires old frontend behavior (auto-request geolocation on load) - not compatible with prettier branch"
+)
+
 
 class TestGeolocationRequestOnPageLoad:
     """Test suite verifying geolocation behavior on page load"""
+
+    @REQUIRES_OLD_GEOLOCATION
+    def test_geolocation_requested_on_page_load(self, page: Page):
+        """
+        Verify that the app requests geolocation permission when the page loads.
+        This is detected by checking for the geolocation permission prompt or
+        the resulting state of location-dependent buttons.
+
+        NOTE: This test is for the OLD frontend behavior. The new privacy-friendly
+        frontend does NOT auto-request geolocation on load.
+        """
+        # Track if geolocation was requested
+        geolocation_requested = {"value": False}
+
+        # Intercept geolocation API calls
+        page.add_init_script(
+            """
+            const originalGetCurrentPosition = navigator.geolocation.getCurrentPosition;
+            navigator.geolocation.getCurrentPosition = function(success, error, options) {
+                window.__geolocationRequested = true;
+                return originalGetCurrentPosition.call(
+                    navigator.geolocation, success, error, options
+                );
+            };
+        """
+        )
+
+        # Navigate to page
+        page.goto(BASE_URL, wait_until="domcontentloaded")
+
+        # Wait for the geolocation request to be made (LocationContext useEffect)
+        page.wait_for_function("() => window.__geolocationRequested === true", timeout=5000)
+
+        # Check if geolocation was requested by evaluating the flag we set
+        geolocation_requested["value"] = page.evaluate(
+            "() => window.__geolocationRequested === true"
+        )
+
+        assert geolocation_requested[
+            "value"
+        ], "Geolocation should be requested automatically on page load"
 
     def test_geolocation_not_requested_without_prior_permission(self, page: Page):
         """
         Verify that the app does NOT request geolocation permission on page load
         when permission hasn't been granted yet. This is privacy-friendly behavior -
         we only prompt when user explicitly clicks a location button.
+
+        NOTE: This test is for the NEW frontend behavior with privacy-friendly geolocation.
         """
         # Intercept geolocation API calls
         page.add_init_script(
