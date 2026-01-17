@@ -262,11 +262,9 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
             f"Unknown device_name={device_name}. Expected one of: {list(MOBILE_DEVICES)}"
         ) from e
 
-    # Create a new context with mobile user agent and touch support
+    # Create a new context with mobile user agent
     context = browser.new_context(
-        viewport=device_config["viewport"],
-        user_agent=device_config["user_agent"],
-        has_touch=True,
+        viewport=device_config["viewport"], user_agent=device_config["user_agent"]
     )
 
     # Create a page from this context
