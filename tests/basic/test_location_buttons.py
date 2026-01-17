@@ -217,11 +217,14 @@ class TestLocationButtonsMobile:
         """
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
+        # Remove webpack overlay that may intercept clicks on CI
+        mobile_page.evaluate(
+            "document.getElementById('webpack-dev-server-client-overlay')?.remove()"
+        )
+
         # Tap the list view button
-        # Use force=True to bypass webpack overlay that may intercept clicks on CI
-        # Use tap() instead of click() to trigger touch events needed for mobile tooltips
         list_view_button = mobile_page.locator("#listViewButton")
-        list_view_button.tap(force=True)
+        list_view_button.click()
 
         # Check tooltip appears with disabled message
         tooltip = mobile_page.locator('[role="tooltip"]')
@@ -236,6 +239,11 @@ class TestLocationButtonsMobile:
         """
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
+        # Remove webpack overlay that may intercept clicks on CI
+        mobile_page.evaluate(
+            "document.getElementById('webpack-dev-server-client-overlay')?.remove()"
+        )
+
         buttons = [
             ("#listViewButton", "List View"),
             ('[aria-label*="Location target"]', "Location"),
@@ -244,16 +252,14 @@ class TestLocationButtonsMobile:
 
         for selector, _name in buttons:
             # Tap the button
-            # Use force=True to bypass webpack overlay that may intercept clicks on CI
-            # Use tap() instead of click() to trigger touch events needed for mobile tooltips
             button = mobile_page.locator(selector)
-            button.tap(force=True)
+            button.click()
 
             # Check tooltip appears
             tooltip = mobile_page.locator('[role="tooltip"]')
             expect(tooltip).to_be_visible(timeout=2000)
             expect(tooltip).to_contain_text("Location services are disabled")
 
-            # Tap elsewhere to dismiss tooltip and wait for it to disappear
-            mobile_page.locator("body").tap(position={"x": 10, "y": 10}, force=True)
+            # Click elsewhere to dismiss tooltip and wait for it to disappear
+            mobile_page.locator("body").click(position={"x": 10, "y": 10})
             expect(tooltip).not_to_be_visible(timeout=2000)
