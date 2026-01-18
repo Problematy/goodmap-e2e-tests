@@ -19,7 +19,7 @@ import pytest
 from playwright.sync_api import BrowserContext, Page, Route
 
 # Constants
-WEBPACK_SCRIPT_URL = "http://localhost:8080/index.js"
+WEBPACK_SCRIPT_URL = "http://localhost:8080/index.min.js"
 CACHE_DIR = Path(".playwright-cache")
 CACHE_FILE = CACHE_DIR / "webpack-script.js"
 BASE_URL = "http://localhost:5000"
@@ -262,11 +262,9 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
             f"Unknown device_name={device_name}. Expected one of: {list(MOBILE_DEVICES)}"
         ) from e
 
-    # Create a new context with mobile user agent and touch support
+    # Create a new context with mobile user agent
     context = browser.new_context(
-        viewport=device_config["viewport"],
-        user_agent=device_config["user_agent"],
-        has_touch=True,
+        viewport=device_config["viewport"], user_agent=device_config["user_agent"]
     )
 
     # Create a page from this context

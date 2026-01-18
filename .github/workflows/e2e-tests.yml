@@ -73,7 +73,7 @@ jobs:
     - name: Start frontend server
       working-directory: goodmap-frontend
       run: |
-        make serve &
+        make serve-prod &
         FRONTEND_PID=$!
         echo $FRONTEND_PID > /tmp/frontend.pid
         disown $FRONTEND_PID
