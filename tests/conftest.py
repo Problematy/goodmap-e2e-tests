@@ -19,7 +19,7 @@ import pytest
 from playwright.sync_api import BrowserContext, Page, Route
 
 # Constants
-WEBPACK_SCRIPT_URL = "http://localhost:8080/index.js"
+WEBPACK_SCRIPT_URL = "http://localhost:8080/index.min.js"
 CACHE_DIR = Path(".playwright-cache")
 CACHE_FILE = CACHE_DIR / "webpack-script.js"
 BASE_URL = "http://localhost:5000"
