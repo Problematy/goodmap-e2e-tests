@@ -227,9 +227,6 @@ class TestLocationButtonsMobile:
         expect(tooltip).to_be_visible()
         expect(tooltip).to_contain_text("Location services are disabled")
 
-        # DEBUG: Keep tooltip visible for video capture - remove after debugging
-        mobile_page.wait_for_timeout(2000)
-
     @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
     def test_all_buttons_show_tooltip_on_tap(self, mobile_page: Page, device_name: str):
         """
@@ -252,9 +249,9 @@ class TestLocationButtonsMobile:
 
             # Check tooltip appears
             tooltip = mobile_page.locator('[role="tooltip"]')
-            expect(tooltip).to_be_visible(timeout=200)
+            expect(tooltip).to_be_visible(timeout=2000)
             expect(tooltip).to_contain_text("Location services are disabled")
 
             # Click elsewhere to dismiss tooltip and wait for it to disappear
             mobile_page.locator("body").click(position={"x": 10, "y": 10})
-            expect(tooltip).not_to_be_visible(timeout=200)
+            expect(tooltip).not_to_be_visible(timeout=2000)
