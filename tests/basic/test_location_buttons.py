@@ -217,14 +217,18 @@ class TestLocationButtonsMobile:
         """
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
-        # Tap the list view button
+        # Tap the list view button (wait for it to be ready first)
         list_view_button = mobile_page.locator("#listViewButton")
+        list_view_button.wait_for(state="visible")
         list_view_button.click()
 
         # Check tooltip appears with disabled message
         tooltip = mobile_page.locator('[role="tooltip"]')
         expect(tooltip).to_be_visible()
         expect(tooltip).to_contain_text("Location services are disabled")
+
+        # DEBUG: Keep tooltip visible for video capture - remove after debugging
+        mobile_page.wait_for_timeout(2000)
 
     @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
     def test_all_buttons_show_tooltip_on_tap(self, mobile_page: Page, device_name: str):
@@ -241,15 +245,16 @@ class TestLocationButtonsMobile:
         ]
 
         for selector, _name in buttons:
-            # Tap the button
+            # Tap the button (wait for it to be ready first)
             button = mobile_page.locator(selector)
+            button.wait_for(state="visible")
             button.click()
 
             # Check tooltip appears
             tooltip = mobile_page.locator('[role="tooltip"]')
-            expect(tooltip).to_be_visible(timeout=2000)
+            expect(tooltip).to_be_visible(timeout=200)
             expect(tooltip).to_contain_text("Location services are disabled")
 
             # Click elsewhere to dismiss tooltip and wait for it to disappear
             mobile_page.locator("body").click(position={"x": 10, "y": 10})
-            expect(tooltip).not_to_be_visible(timeout=2000)
+            expect(tooltip).not_to_be_visible(timeout=200)

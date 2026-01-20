@@ -141,6 +141,17 @@ def pytest_configure(config):
         print(f"\nUsing cached webpack script from {CACHE_FILE}")
 
 
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """
+    Hook to store test result on the item for use in fixtures.
+    Used by mobile_page fixture to determine if video should be retained.
+    """
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, f"rep_{rep.when}", rep)
+
+
 @pytest.fixture(scope="session")
 def webpack_script() -> str:
     """
@@ -262,9 +273,24 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
             f"Unknown device_name={device_name}. Expected one of: {list(MOBILE_DEVICES)}"
         ) from e
 
-    # Create a new context with mobile user agent
+    # Determine video recording settings from pytest config
+    video_option = request.config.getoption("--video", default="off")
+    record_video_dir = None
+    record_video_size = None
+    if video_option in ("on", "retain-on-failure"):
+        output_dir = request.config.getoption("--output", default="test-results")
+        # Create a unique directory for this test's video
+        test_name = request.node.name.replace("[", "-").replace("]", "")
+        record_video_dir = str(Path(output_dir) / test_name)
+        # Set video size to match mobile viewport for clearer recordings
+        record_video_size = device_config["viewport"]
+
+    # Create a new context with mobile user agent and optional video recording
     context = browser.new_context(
-        viewport=device_config["viewport"], user_agent=device_config["user_agent"]
+        viewport=device_config["viewport"],
+        user_agent=device_config["user_agent"],
+        record_video_dir=record_video_dir,
+        record_video_size=record_video_size,
     )
 
     # Create a page from this context
@@ -290,9 +316,24 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
 
     yield page
 
+    # Get video path before closing (video is saved on close)
+    video = page.video
+    video_path = video.path() if video else None
+
     # Cleanup
     page.close()
     context.close()
+
+    # Handle retain-on-failure: delete video if test passed
+    if video_path and video_option == "retain-on-failure":
+        # Check if test failed
+        test_failed = hasattr(request.node, "rep_call") and request.node.rep_call.failed
+        if not test_failed and Path(video_path).exists():
+            Path(video_path).unlink()
+            # Remove empty directory
+            video_dir = Path(video_path).parent
+            if video_dir.exists() and not any(video_dir.iterdir()):
+                video_dir.rmdir()
 
 
 @pytest.fixture
