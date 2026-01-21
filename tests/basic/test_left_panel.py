@@ -235,6 +235,7 @@ class TestLeftPanelMobile:
 
         # Open the panel
         toggle_button = mobile_page.locator('button[aria-label="Toggle left panel"]')
+        toggle_button.wait_for(state="visible")
         toggle_button.click()
 
         # Wait for panel to open
@@ -265,6 +266,7 @@ class TestLeftPanelMobile:
 
         # Open the panel
         toggle_button = mobile_page.locator('button[aria-label="Toggle left panel"]')
+        toggle_button.wait_for(state="visible")
         toggle_button.click()
 
         # Wait for panel to open and content to load
@@ -307,6 +309,7 @@ class TestLeftPanelTablet:
 
         # Open the panel
         toggle_button = page.locator('button[aria-label="Toggle left panel"]')
+        toggle_button.wait_for(state="visible")
         toggle_button.click()
 
         # Wait for panel to open and content to load
