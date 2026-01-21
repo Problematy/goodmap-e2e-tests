@@ -29,33 +29,12 @@ MAP_LOAD_TIMEOUT = 5000
 MARKER_LOAD_TIMEOUT = 5000
 TABLE_LOAD_TIMEOUT = 5000
 
-# Script to remove webpack-dev-server overlay that can intercept clicks
-# Uses CSS (when head exists) + MutationObserver (aggressive removal)
+# Script to remove webpack-dev-server overlay (fallback, overlay should be disabled via --no-client-overlay)
 WEBPACK_OVERLAY_REMOVAL_SCRIPT = """
-// Inject CSS to hide overlay - append to head if exists, otherwise documentElement
+// Hide webpack overlay if it appears (fallback safety)
 const style = document.createElement('style');
-style.textContent = `#webpack-dev-server-client-overlay {
-    display: none !important;
-    pointer-events: none !important;
-    visibility: hidden !important;
-}`;
+style.textContent = '#webpack-dev-server-client-overlay { display: none !important; }';
 (document.head || document.documentElement).appendChild(style);
-
-// Aggressive MutationObserver - remove overlay immediately when it appears
-const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-            if (node.id === 'webpack-dev-server-client-overlay') {
-                node.remove();
-                return;
-            }
-        }
-    }
-    // Also check if it already exists
-    const overlay = document.getElementById('webpack-dev-server-client-overlay');
-    if (overlay) overlay.remove();
-});
-observer.observe(document.documentElement, { childList: true, subtree: true });
 """
 
 # Mobile device configurations for Playwright
