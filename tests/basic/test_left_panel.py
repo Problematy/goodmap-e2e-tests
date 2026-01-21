@@ -17,7 +17,7 @@ These tests verify:
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.conftest import ALL_MOBILE_DEVICES, BASE_URL, MOBILE_DEVICES
+from tests.conftest import ALL_MOBILE_DEVICES, BASE_URL
 
 
 class TestLeftPanelDesktop:
@@ -71,11 +71,18 @@ class TestLeftPanelDesktop:
         body_overflow = page.evaluate("() => getComputedStyle(document.body).overflow")
         assert body_overflow == "hidden", f"Expected body overflow: hidden, got: {body_overflow}"
 
-        # Check that body doesn't have vertical scroll
+        # Check that page is not actually scrollable (attempt scroll test)
         has_scroll = page.evaluate(
-            "() => document.body.scrollHeight > document.body.clientHeight"
+            """() => {
+                const el = document.scrollingElement || document.documentElement;
+                const before = el.scrollTop;
+                el.scrollTo(0, 100);
+                const after = el.scrollTop;
+                el.scrollTo(0, 0);
+                return after > before;
+            }"""
         )
-        assert not has_scroll, "Page should not have vertical scroll"
+        assert not has_scroll, "Page should not be scrollable"
 
     def test_panel_content_scrolls_on_desktop(self, page: Page):
         """
@@ -141,8 +148,8 @@ class TestLeftPanelDesktop:
 class TestLeftPanelMobile:
     """Test suite for left panel on mobile viewport (<992px)"""
 
-    @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
-    def test_panel_hidden_by_default_on_mobile(self, mobile_page: Page, device_name: str):
+    @pytest.mark.parametrize("mobile_page", ALL_MOBILE_DEVICES, indirect=True)
+    def test_panel_hidden_by_default_on_mobile(self, mobile_page: Page):
         """
         On mobile, the filter panel (dialog) should be hidden by default.
         """
@@ -155,8 +162,8 @@ class TestLeftPanelMobile:
         filter_dialog = mobile_page.locator('[role="dialog"]')
         expect(filter_dialog).not_to_be_visible()
 
-    @pytest.mark.parametrize("device_name", ["iphone-6"])
-    def test_panel_opens_on_toggle_click(self, mobile_page: Page, device_name: str):
+    @pytest.mark.parametrize("mobile_page", ["iphone-6"], indirect=True)
+    def test_panel_opens_on_toggle_click(self, mobile_page: Page):
         """
         Clicking the toggle button should open the filter panel dialog.
         """
@@ -175,8 +182,8 @@ class TestLeftPanelMobile:
         filter_form = mobile_page.locator('#filter-form')
         expect(filter_form).to_be_visible()
 
-    @pytest.mark.parametrize("device_name", ["iphone-6"])
-    def test_close_button_visible_on_mobile(self, mobile_page: Page, device_name: str):
+    @pytest.mark.parametrize("mobile_page", ["iphone-6"], indirect=True)
+    def test_close_button_visible_on_mobile(self, mobile_page: Page):
         """
         On mobile, the panel should have a visible close button.
         """
@@ -195,8 +202,8 @@ class TestLeftPanelMobile:
         close_button = mobile_page.locator('button[aria-label="Close left panel"]')
         expect(close_button).to_be_visible()
 
-    @pytest.mark.parametrize("device_name", ["iphone-6"])
-    def test_close_button_closes_panel(self, mobile_page: Page, device_name: str):
+    @pytest.mark.parametrize("mobile_page", ["iphone-6"], indirect=True)
+    def test_close_button_closes_panel(self, mobile_page: Page):
         """
         Clicking the close button should close the panel.
         """
@@ -218,8 +225,8 @@ class TestLeftPanelMobile:
         # Verify dialog is closed
         expect(filter_dialog).not_to_be_visible(timeout=5000)
 
-    @pytest.mark.parametrize("device_name", ["iphone-6"])
-    def test_panel_width_on_mobile(self, mobile_page: Page, device_name: str):
+    @pytest.mark.parametrize("mobile_page", ["iphone-6"], indirect=True)
+    def test_panel_width_on_mobile(self, mobile_page: Page):
         """
         On mobile, the panel should be 80vw wide (80% of viewport width).
         """
@@ -248,8 +255,8 @@ class TestLeftPanelMobile:
             expected_width * 0.9 <= actual_width <= expected_width * 1.1
         ), f"Expected panel width ~{expected_width}px (80vw), got: {actual_width}px"
 
-    @pytest.mark.parametrize("device_name", ["iphone-6"])
-    def test_no_page_scrollbar_on_mobile(self, mobile_page: Page, device_name: str):
+    @pytest.mark.parametrize("mobile_page", ["iphone-6"], indirect=True)
+    def test_no_page_scrollbar_on_mobile(self, mobile_page: Page):
         """
         On mobile, there should be no page-level scrollbar.
         """
@@ -377,7 +384,10 @@ class TestLeftPanelScrollbar:
         page.wait_for_selector("#filter-form", timeout=10000)
 
         overflow_y = page.evaluate(
-            "() => getComputedStyle(document.querySelector('#left-panel .offcanvas-body')).overflowY"
+            """() => {
+                const el = document.querySelector('#left-panel .offcanvas-body');
+                return getComputedStyle(el).overflowY;
+            }"""
         )
 
         assert overflow_y == "auto", f"Expected overflow-y: auto, got: {overflow_y}"

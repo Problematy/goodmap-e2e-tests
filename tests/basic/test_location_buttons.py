@@ -209,15 +209,15 @@ class TestLocationButtonsDesktopDisabledState:
 class TestLocationButtonsMobile:
     """Test suite for location buttons on mobile devices"""
 
-    @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
-    def test_list_view_shows_tooltip_on_tap(self, mobile_page: Page, device_name: str):
+    @pytest.mark.parametrize("mobile_page", ALL_MOBILE_DEVICES, indirect=True)
+    def test_list_view_shows_tooltip_on_tap(self, mobile_page: Page):
         """
         Verify list view button shows tooltip immediately on tap
         when geolocation is not granted (mobile).
         """
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
-        # Tap the list view button (wait for it to be ready first)
+        # Tap the list view button
         list_view_button = mobile_page.locator("#listViewButton")
         list_view_button.wait_for(state="visible")
         list_view_button.click()
@@ -227,8 +227,8 @@ class TestLocationButtonsMobile:
         expect(tooltip).to_be_visible()
         expect(tooltip).to_contain_text("Location services are disabled")
 
-    @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
-    def test_all_buttons_show_tooltip_on_tap(self, mobile_page: Page, device_name: str):
+    @pytest.mark.parametrize("mobile_page", ALL_MOBILE_DEVICES, indirect=True)
+    def test_all_buttons_show_tooltip_on_tap(self, mobile_page: Page):
         """
         Verify all three location buttons show tooltips consistently on tap (mobile).
         Tests that enterTouchDelay=0 is working for all buttons.
@@ -242,7 +242,7 @@ class TestLocationButtonsMobile:
         ]
 
         for selector, _name in buttons:
-            # Tap the button (wait for it to be ready first)
+            # Tap the button
             button = mobile_page.locator(selector)
             button.wait_for(state="visible")
             button.click()

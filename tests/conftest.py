@@ -29,14 +29,6 @@ MAP_LOAD_TIMEOUT = 5000
 MARKER_LOAD_TIMEOUT = 5000
 TABLE_LOAD_TIMEOUT = 5000
 
-# Script to remove webpack-dev-server overlay (fallback, overlay should be disabled via --no-client-overlay)
-WEBPACK_OVERLAY_REMOVAL_SCRIPT = """
-// Hide webpack overlay if it appears (fallback safety)
-const style = document.createElement('style');
-style.textContent = '#webpack-dev-server-client-overlay { display: none !important; }';
-(document.head || document.documentElement).appendChild(style);
-"""
-
 # Mobile device configurations for Playwright
 MOBILE_DEVICES = {
     "iphone-x": {
@@ -121,7 +113,7 @@ def pytest_configure(config):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(item, call):  # noqa: ARG001
     """
     Hook to store test result on the item for use in fixtures.
     Used by mobile_page fixture to determine if video should be retained.
@@ -174,9 +166,6 @@ def page(page: Page, webpack_script: str) -> Page:
     page.route("**/ws", block_hmr_route)
     page.route("**/*.hot-update.*", block_hmr_route)
 
-    # Remove webpack-dev-server overlay that can intercept clicks
-    page.add_init_script(WEBPACK_OVERLAY_REMOVAL_SCRIPT)
-
     return page
 
 
@@ -225,25 +214,15 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
     This fixture creates a new browser context with the correct user agent,
     ensuring that react-device-detect properly identifies the device as mobile.
 
-    The device configuration is passed via parametrize with the 'device_name' parameter.
+    The device is passed via indirect parametrization.
 
     Example:
-        @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
-        def test_mobile(mobile_page, device_name):
+        @pytest.mark.parametrize("mobile_page", ALL_MOBILE_DEVICES, indirect=True)
+        def test_mobile(mobile_page):
             mobile_page.goto(BASE_URL)
             # ... test mobile-specific behavior
     """
-    # Get device_name from parametrize (safely handle missing callspec)
-    callspec = getattr(request.node, "callspec", None)
-    if callspec is None:
-        raise ValueError(
-            "mobile_page fixture requires @pytest.mark.parametrize with 'device_name' parameter"
-        )
-    device_name = callspec.params.get("device_name")
-    if not device_name:
-        raise ValueError(
-            "mobile_page fixture requires 'device_name' parameter from @pytest.mark.parametrize"
-        )
+    device_name = request.param
 
     try:
         device_config = MOBILE_DEVICES[device_name]
@@ -258,9 +237,12 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
     record_video_size = None
     if video_option in ("on", "retain-on-failure"):
         output_dir = request.config.getoption("--output", default="test-results")
-        # Create a unique directory for this test's video
-        test_name = request.node.name.replace("[", "-").replace("]", "")
-        record_video_dir = str(Path(output_dir) / test_name)
+        # Create a unique directory for this test's video using nodeid to prevent collisions
+        nodeid = request.node.nodeid
+        safe_nodeid = (
+            nodeid.replace("::", "__").replace("/", "__").replace("[", "-").replace("]", "")
+        )
+        record_video_dir = str(Path(output_dir) / safe_nodeid)
         # Set video size to match mobile viewport for clearer recordings
         record_video_size = device_config["viewport"]
 
@@ -291,9 +273,6 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
     page.route("**/ws", block_hmr_route)
     page.route("**/*.hot-update.*", block_hmr_route)
 
-    # Remove webpack-dev-server overlay that can intercept clicks
-    page.add_init_script(WEBPACK_OVERLAY_REMOVAL_SCRIPT)
-
     yield page
 
     # Get video path before closing (video is saved on close)
@@ -306,8 +285,11 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
 
     # Handle retain-on-failure: delete video if test passed
     if video_path and video_option == "retain-on-failure":
-        # Check if test failed
-        test_failed = hasattr(request.node, "rep_call") and request.node.rep_call.failed
+        # Check if any test phase failed (setup, call, or teardown)
+        rep_setup = getattr(request.node, "rep_setup", None)
+        rep_call = getattr(request.node, "rep_call", None)
+        rep_teardown = getattr(request.node, "rep_teardown", None)
+        test_failed = any(rep and rep.failed for rep in (rep_setup, rep_call, rep_teardown))
         if not test_failed and Path(video_path).exists():
             Path(video_path).unlink()
             # Remove empty directory

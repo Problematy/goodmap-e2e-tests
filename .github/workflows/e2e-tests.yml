@@ -103,6 +103,15 @@ jobs:
         set -o pipefail
         make e2e-tests | tee /tmp/e2e-tests-output.txt
 
+    - name: Upload test videos on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-failure-videos
+        path: e2e-tests/test-results/**/*.webm
+        retention-days: 7
+        if-no-files-found: ignore
+
     - name: Stop backend for e2e tests
       if: always()
       shell: bash {0}
@@ -198,15 +207,6 @@ jobs:
           /tmp/pr-sha.txt
           /tmp/stress-test-perf.json
         retention-days: 1
-        if-no-files-found: ignore
-
-    - name: Upload test videos on failure
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-failure-videos
-        path: e2e-tests/test-results/**/*.webm
-        retention-days: 7
         if-no-files-found: ignore
 
     - name: Stop frontend server
