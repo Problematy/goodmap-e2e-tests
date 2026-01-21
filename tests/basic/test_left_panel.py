@@ -155,8 +155,9 @@ class TestLeftPanelMobile:
         """
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
-        # Wait for page to load
-        mobile_page.wait_for_load_state("networkidle")
+        # Wait for toggle button to be visible (indicates page is ready)
+        toggle_button = mobile_page.locator('button[aria-label="Toggle left panel"]')
+        toggle_button.wait_for(state="visible")
 
         # Filter dialog should not be visible by default on mobile
         filter_dialog = mobile_page.locator('[role="dialog"]')

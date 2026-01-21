@@ -214,15 +214,27 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
     This fixture creates a new browser context with the correct user agent,
     ensuring that react-device-detect properly identifies the device as mobile.
 
-    The device is passed via indirect parametrization.
-
-    Example:
+    Supports two parametrization styles:
+    1. Indirect (preferred):
         @pytest.mark.parametrize("mobile_page", ALL_MOBILE_DEVICES, indirect=True)
         def test_mobile(mobile_page):
-            mobile_page.goto(BASE_URL)
-            # ... test mobile-specific behavior
+            ...
+
+    2. Legacy (device_name parameter):
+        @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
+        def test_mobile(mobile_page, device_name):
+            ...
     """
-    device_name = request.param
+    # Support both indirect parametrization and legacy device_name parameter
+    if hasattr(request, "param"):
+        device_name = request.param
+    else:
+        callspec = getattr(request.node, "callspec", None)
+        if callspec is None:
+            raise ValueError("mobile_page fixture requires parametrization")
+        device_name = callspec.params.get("device_name")
+        if not device_name:
+            raise ValueError("mobile_page fixture requires 'device_name' parameter")
 
     try:
         device_config = MOBILE_DEVICES[device_name]
