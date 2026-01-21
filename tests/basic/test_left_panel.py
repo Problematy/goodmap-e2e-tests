@@ -114,7 +114,7 @@ class TestLeftPanelDesktop:
 
     def test_all_filter_categories_accessible_on_desktop(self, page: Page):
         """
-        All filter categories (types, gender, condition, type_of_place, transparency)
+        All filter categories (accessible_by, type_of_place)
         should be accessible, either visible or reachable by scrolling.
         """
         page.set_viewport_size({"width": 1200, "height": 600})
@@ -126,16 +126,16 @@ class TestLeftPanelDesktop:
         panel_body = page.locator("#left-panel .offcanvas-body")
         panel_body.evaluate("el => el.scrollTop = el.scrollHeight")
 
-        # Check that transparency category (typically last) is visible after scrolling
+        # Check that type_of_place category is visible after scrolling
         # Look for the category header text
-        transparency_visible = page.evaluate(
+        category_visible = page.evaluate(
             """() => {
                 const panel = document.querySelector('#left-panel .offcanvas-body');
                 const text = panel.textContent.toLowerCase();
-                return text.includes('transparency') || text.includes('high') || text.includes('low');
+                return text.includes('type_of_place') || text.includes('type of place');
             }"""
         )
-        assert transparency_visible, "Transparency category should be accessible after scrolling"
+        assert category_visible, "type_of_place category should be accessible after scrolling"
 
 
 class TestLeftPanelMobile:
@@ -144,56 +144,55 @@ class TestLeftPanelMobile:
     @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
     def test_panel_hidden_by_default_on_mobile(self, mobile_page: Page, device_name: str):
         """
-        On mobile, the left panel should be hidden by default (offcanvas).
+        On mobile, the filter panel (dialog) should be hidden by default.
         """
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
         # Wait for page to load
         mobile_page.wait_for_load_state("networkidle")
 
-        # Panel should not be visually active (offcanvas is hidden)
-        panel = mobile_page.locator("#left-panel")
-
-        # Check that panel doesn't have 'show' class (Bootstrap offcanvas)
-        has_show_class = panel.evaluate("el => el.classList.contains('show')")
-        assert not has_show_class, "Panel should not have 'show' class by default on mobile"
+        # Filter dialog should not be visible by default on mobile
+        filter_dialog = mobile_page.locator('[role="dialog"]')
+        expect(filter_dialog).not_to_be_visible()
 
     @pytest.mark.parametrize("device_name", ["iphone-6"])
     def test_panel_opens_on_toggle_click(self, mobile_page: Page, device_name: str):
         """
-        Clicking the toggle button should open the left panel as an offcanvas overlay.
+        Clicking the toggle button should open the filter panel dialog.
         """
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
         # Find and click the toggle button
         toggle_button = mobile_page.locator('button[aria-label="Toggle left panel"]')
-        expect(toggle_button).to_be_visible()
+        toggle_button.wait_for(state="visible")
         toggle_button.click()
 
-        # Wait for panel to be visible
-        panel = mobile_page.locator("#left-panel")
-        expect(panel).to_be_visible(timeout=5000)
+        # Wait for filter dialog to be visible
+        filter_dialog = mobile_page.locator('[role="dialog"]')
+        expect(filter_dialog).to_be_visible(timeout=5000)
 
-        # Panel should have 'show' class when open
-        has_show_class = panel.evaluate("el => el.classList.contains('show')")
-        assert has_show_class, "Panel should have 'show' class when open"
+        # Filter form should be visible inside dialog
+        filter_form = mobile_page.locator('#filter-form')
+        expect(filter_form).to_be_visible()
 
     @pytest.mark.parametrize("device_name", ["iphone-6"])
     def test_close_button_visible_on_mobile(self, mobile_page: Page, device_name: str):
         """
-        On mobile, the panel should have a visible close button (X).
+        On mobile, the panel should have a visible close button.
         """
         mobile_page.goto(BASE_URL, wait_until="domcontentloaded")
 
         # Open the panel
         toggle_button = mobile_page.locator('button[aria-label="Toggle left panel"]')
+        toggle_button.wait_for(state="visible")
         toggle_button.click()
 
-        # Wait for panel to open
-        mobile_page.wait_for_selector("#left-panel.show", timeout=5000)
+        # Wait for dialog to open
+        filter_dialog = mobile_page.locator('[role="dialog"]')
+        expect(filter_dialog).to_be_visible(timeout=5000)
 
         # Close button should be visible
-        close_button = mobile_page.locator("#left-panel .btn-close")
+        close_button = mobile_page.locator('button[aria-label="Close left panel"]')
         expect(close_button).to_be_visible()
 
     @pytest.mark.parametrize("device_name", ["iphone-6"])
@@ -205,22 +204,19 @@ class TestLeftPanelMobile:
 
         # Open the panel
         toggle_button = mobile_page.locator('button[aria-label="Toggle left panel"]')
+        toggle_button.wait_for(state="visible")
         toggle_button.click()
 
-        # Wait for panel to open
-        mobile_page.wait_for_selector("#left-panel.show", timeout=5000)
+        # Wait for dialog to open
+        filter_dialog = mobile_page.locator('[role="dialog"]')
+        expect(filter_dialog).to_be_visible(timeout=5000)
 
         # Click close button
-        close_button = mobile_page.locator("#left-panel .btn-close")
+        close_button = mobile_page.locator('button[aria-label="Close left panel"]')
         close_button.click()
 
-        # Wait for panel to close
-        mobile_page.wait_for_selector("#left-panel:not(.show)", timeout=5000)
-
-        # Verify panel is closed
-        panel = mobile_page.locator("#left-panel")
-        has_show_class = panel.evaluate("el => el.classList.contains('show')")
-        assert not has_show_class, "Panel should be closed after clicking close button"
+        # Verify dialog is closed
+        expect(filter_dialog).not_to_be_visible(timeout=5000)
 
     @pytest.mark.parametrize("device_name", ["iphone-6"])
     def test_panel_width_on_mobile(self, mobile_page: Page, device_name: str):
@@ -318,8 +314,8 @@ class TestLeftPanelTablet:
         # These should be fully visible, not truncated
         assert "type_of_place" in panel_text or "type of place" in panel_text.lower(), \
             "type_of_place should be fully visible"
-        assert "parcel_machine" in panel_text or "parcel machine" in panel_text.lower(), \
-            "parcel_machine should be fully visible"
+        assert "accessible_by" in panel_text or "accessible by" in panel_text.lower(), \
+            "accessible_by should be fully visible"
 
 
 class TestLeftPanelFilterHelpers:

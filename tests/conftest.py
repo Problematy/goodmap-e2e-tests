@@ -285,10 +285,11 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
         # Set video size to match mobile viewport for clearer recordings
         record_video_size = device_config["viewport"]
 
-    # Create a new context with mobile user agent and optional video recording
+    # Create a new context with mobile user agent, touch support, and optional video recording
     context = browser.new_context(
         viewport=device_config["viewport"],
         user_agent=device_config["user_agent"],
+        has_touch=True,
         record_video_dir=record_video_dir,
         record_video_size=record_video_size,
     )
