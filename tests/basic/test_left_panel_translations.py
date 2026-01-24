@@ -181,13 +181,13 @@ class TestLeftPanelHelpTextTranslations:
 
         # Find and hover over a help icon
         help_icon = page.get_by_label("Help: categories_options_help_small bridge")
-        if help_icon.count() > 0:
-            help_icon.first.hover()
-            tooltip = page.locator('[role="tooltip"]')
-            expect(tooltip).to_be_visible()
-            tooltip_text = tooltip.inner_text()
-            expected = TRANSLATIONS["en"]["help_texts"]["categories_options_help_small bridge"]
-            assert expected in tooltip_text, f"Expected '{expected}' in tooltip"
+        assert help_icon.count() > 0, "Help icon not found - UI may have changed"
+        help_icon.first.hover()
+        tooltip = page.locator('[role="tooltip"]')
+        expect(tooltip).to_be_visible()
+        tooltip_text = tooltip.inner_text()
+        expected = TRANSLATIONS["en"]["help_texts"]["categories_options_help_small bridge"]
+        assert expected in tooltip_text, f"Expected '{expected}' in tooltip"
 
     def test_help_tooltip_in_polish(self, page: Page):
         """Verify help tooltip shows Polish text after language switch"""
@@ -198,10 +198,10 @@ class TestLeftPanelHelpTextTranslations:
 
         # Find and hover over a help icon
         help_icon = page.get_by_label("Help: categories_options_help_small bridge")
-        if help_icon.count() > 0:
-            help_icon.first.hover()
-            tooltip = page.locator('[role="tooltip"]')
-            expect(tooltip).to_be_visible()
-            tooltip_text = tooltip.inner_text()
-            expected = TRANSLATIONS["pl"]["help_texts"]["categories_options_help_small bridge"]
-            assert expected in tooltip_text, f"Expected '{expected}' in tooltip"
+        assert help_icon.count() > 0, "Help icon not found - UI may have changed"
+        help_icon.first.hover()
+        tooltip = page.locator('[role="tooltip"]')
+        expect(tooltip).to_be_visible()
+        tooltip_text = tooltip.inner_text()
+        expected = TRANSLATIONS["pl"]["help_texts"]["categories_options_help_small bridge"]
+        assert expected in tooltip_text, f"Expected '{expected}' in tooltip"
