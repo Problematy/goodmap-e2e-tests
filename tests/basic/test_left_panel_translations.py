@@ -69,26 +69,24 @@ class TestLeftPanelTranslationsEnglish:
         """Navigate to home page and wait for filter form to load"""
         page.set_viewport_size({"width": 1200, "height": 800})
         page.goto(BASE_URL, wait_until="domcontentloaded")
-        page.wait_for_selector("#filter-form", timeout=10000)
+        # Auto-wait for content to be fully loaded
+        panel = page.locator("#left-panel")
+        expect(panel).to_contain_text("accessible by", ignore_case=True, timeout=10000)
 
     def test_category_names_in_english(self, page: Page):
         """Verify category names are displayed in English"""
         panel = page.locator("#left-panel")
-        panel_text = panel.inner_text().lower()
-
         for key, expected in TRANSLATIONS["en"]["category_names"].items():
-            assert (
-                expected.lower() in panel_text
+            expect(panel).to_contain_text(
+                expected, ignore_case=True
             ), f"Expected '{expected}' (translation of '{key}') in left panel"
 
     def test_filter_options_in_english(self, page: Page):
         """Verify filter options are displayed in English"""
         panel = page.locator("#left-panel")
-        panel_text = panel.inner_text().lower()
-
         for key, expected in TRANSLATIONS["en"]["filter_options"].items():
-            assert (
-                expected.lower() in panel_text
+            expect(panel).to_contain_text(
+                expected, ignore_case=True
             ), f"Expected '{expected}' (translation of '{key}') in left panel"
 
 
@@ -108,21 +106,17 @@ class TestLeftPanelTranslationsPolish:
     def test_category_names_in_polish(self, page: Page):
         """Verify category names are displayed in Polish"""
         panel = page.locator("#left-panel")
-        panel_text = panel.inner_text().lower()
-
         for key, expected in TRANSLATIONS["pl"]["category_names"].items():
-            assert (
-                expected.lower() in panel_text
+            expect(panel).to_contain_text(
+                expected, ignore_case=True
             ), f"Expected '{expected}' (Polish translation of '{key}') in left panel"
 
     def test_filter_options_in_polish(self, page: Page):
         """Verify filter options are displayed in Polish"""
         panel = page.locator("#left-panel")
-        panel_text = panel.inner_text().lower()
-
         for key, expected in TRANSLATIONS["pl"]["filter_options"].items():
-            assert (
-                expected.lower() in panel_text
+            expect(panel).to_contain_text(
+                expected, ignore_case=True
             ), f"Expected '{expected}' (Polish translation of '{key}') in left panel"
 
 
@@ -164,7 +158,9 @@ class TestLeftPanelHelpTextTranslations:
         """Verify help tooltip shows English text"""
         page.set_viewport_size({"width": 1200, "height": 800})
         page.goto(BASE_URL, wait_until="domcontentloaded")
-        page.wait_for_selector("#filter-form", timeout=10000)
+        # Auto-wait for content to be fully loaded
+        panel = page.locator("#left-panel")
+        expect(panel).to_contain_text("accessible by", ignore_case=True, timeout=10000)
 
         # Find and hover over a help icon (label is "Help: {translated_text}")
         expected = TRANSLATIONS["en"]["help_texts"]["categories_options_help_small bridge"]
