@@ -179,14 +179,14 @@ class TestLeftPanelHelpTextTranslations:
         page.goto(BASE_URL, wait_until="domcontentloaded")
         page.wait_for_selector("#filter-form", timeout=10000)
 
-        # Find and hover over a help icon
-        help_icon = page.get_by_label("Help: categories_options_help_small bridge")
+        # Find and hover over a help icon (label is "Help: {translated_text}")
+        expected = TRANSLATIONS["en"]["help_texts"]["categories_options_help_small bridge"]
+        help_icon = page.get_by_label(f"Help: {expected}")
         assert help_icon.count() > 0, "Help icon not found - UI may have changed"
         help_icon.first.hover()
         tooltip = page.locator('[role="tooltip"]')
         expect(tooltip).to_be_visible()
         tooltip_text = tooltip.inner_text()
-        expected = TRANSLATIONS["en"]["help_texts"]["categories_options_help_small bridge"]
         assert expected in tooltip_text, f"Expected '{expected}' in tooltip"
 
     def test_help_tooltip_in_polish(self, page: Page):
@@ -196,12 +196,12 @@ class TestLeftPanelHelpTextTranslations:
         switch_to_language(page, "polski")
         page.wait_for_selector("#filter-form", timeout=10000)
 
-        # Find and hover over a help icon
-        help_icon = page.get_by_label("Help: categories_options_help_small bridge")
+        # Find and hover over a help icon (label is "Help: {translated_text}")
+        expected = TRANSLATIONS["pl"]["help_texts"]["categories_options_help_small bridge"]
+        help_icon = page.get_by_label(f"Help: {expected}")
         assert help_icon.count() > 0, "Help icon not found - UI may have changed"
         help_icon.first.hover()
         tooltip = page.locator('[role="tooltip"]')
         expect(tooltip).to_be_visible()
         tooltip_text = tooltip.inner_text()
-        expected = TRANSLATIONS["pl"]["help_texts"]["categories_options_help_small bridge"]
         assert expected in tooltip_text, f"Expected '{expected}' in tooltip"
