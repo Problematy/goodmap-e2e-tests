@@ -101,7 +101,9 @@ class TestLeftPanelTranslationsPolish:
         page.set_viewport_size({"width": 1200, "height": 800})
         page.goto(BASE_URL, wait_until="domcontentloaded")
         switch_to_language(page, "polski")
-        page.wait_for_selector("#filter-form", timeout=10000)
+        # Use expect().to_contain_text() to auto-wait for translated content
+        panel = page.locator("#left-panel")
+        expect(panel).to_contain_text("dostępny dla", ignore_case=True, timeout=10000)
 
     def test_category_names_in_polish(self, page: Page):
         """Verify category names are displayed in Polish"""
@@ -131,43 +133,28 @@ class TestLeftPanelTranslationSwitching:
         """Verify switching from English to Polish updates category names"""
         page.set_viewport_size({"width": 1200, "height": 800})
         page.goto(BASE_URL, wait_until="domcontentloaded")
-        page.wait_for_selector("#filter-form", timeout=10000)
-
-        # Verify English first
         panel = page.locator("#left-panel")
-        panel_text = panel.inner_text().lower()
-        assert "accessible by" in panel_text, "Expected English 'accessible by'"
 
-        # Switch to Polish
+        # Verify English first (auto-wait for content)
+        expect(panel).to_contain_text("accessible by", ignore_case=True, timeout=10000)
+
+        # Switch to Polish and verify (auto-wait for translated content)
         switch_to_language(page, "polski")
-        page.wait_for_selector("#filter-form", timeout=10000)
-
-        # Verify Polish
-        panel = page.locator("#left-panel")
-        panel_text = panel.inner_text().lower()
-        assert "dostępny dla" in panel_text, "Expected Polish 'dostępny dla'"
+        expect(panel).to_contain_text("dostępny dla", ignore_case=True, timeout=10000)
 
     def test_switch_from_polish_to_english_updates_category_names(self, page: Page):
         """Verify switching from Polish back to English restores English text"""
         page.set_viewport_size({"width": 1200, "height": 800})
         page.goto(BASE_URL, wait_until="domcontentloaded")
+        panel = page.locator("#left-panel")
 
-        # Switch to Polish first
+        # Switch to Polish first and verify (auto-wait for translated content)
         switch_to_language(page, "polski")
-        page.wait_for_selector("#filter-form", timeout=10000)
+        expect(panel).to_contain_text("dostępny dla", ignore_case=True, timeout=10000)
 
-        panel = page.locator("#left-panel")
-        panel_text = panel.inner_text().lower()
-        assert "dostępny dla" in panel_text, "Expected Polish 'dostępny dla'"
-
-        # Switch back to English
+        # Switch back to English and verify (auto-wait for translated content)
         switch_to_language(page, "English")
-        page.wait_for_selector("#filter-form", timeout=10000)
-
-        # Verify English restored
-        panel = page.locator("#left-panel")
-        panel_text = panel.inner_text().lower()
-        assert "accessible by" in panel_text, "Expected English 'accessible by' restored"
+        expect(panel).to_contain_text("accessible by", ignore_case=True, timeout=10000)
 
 
 class TestLeftPanelHelpTextTranslations:
@@ -194,7 +181,9 @@ class TestLeftPanelHelpTextTranslations:
         page.set_viewport_size({"width": 1200, "height": 800})
         page.goto(BASE_URL, wait_until="domcontentloaded")
         switch_to_language(page, "polski")
-        page.wait_for_selector("#filter-form", timeout=10000)
+        # Auto-wait for translated content before interacting with help icon
+        panel = page.locator("#left-panel")
+        expect(panel).to_contain_text("dostępny dla", ignore_case=True, timeout=10000)
 
         # Find and hover over a help icon (label is "Help: {translated_text}")
         expected = TRANSLATIONS["pl"]["help_texts"]["categories_options_help_small bridge"]
