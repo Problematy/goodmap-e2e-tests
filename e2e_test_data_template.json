@@ -48,7 +48,7 @@
         "str"
       ]
     ],
-    "reported_issue_types": ["under construction", "has a hole"],
+      "reported_issue_types": ["under construction", "has a hole", "other"],
     "categories": {
       "accessible_by": [
         "bikes",
