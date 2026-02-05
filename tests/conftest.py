@@ -11,17 +11,11 @@ This module provides custom fixtures for:
 import json
 from collections.abc import Callable, Generator
 from pathlib import Path
-from urllib.error import URLError
-from urllib.parse import urlparse
-from urllib.request import urlopen
 
 import pytest
 from playwright.sync_api import BrowserContext, Page, Route
 
 # Constants
-WEBPACK_SCRIPT_URL = "http://localhost:8080/index.min.js"
-CACHE_DIR = Path(".playwright-cache")
-CACHE_FILE = CACHE_DIR / "webpack-script.js"
 BASE_URL = "http://localhost:5000"
 
 # Timeouts (in milliseconds)
@@ -33,19 +27,35 @@ TABLE_LOAD_TIMEOUT = 5000
 MOBILE_DEVICES = {
     "iphone-x": {
         "viewport": {"width": 375, "height": 812},
-        "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1",
+        "user_agent": (
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) "
+            "AppleWebKit/604.1.38 (KHTML, like Gecko) "
+            "Version/11.0 Mobile/15A372 Safari/604.1"
+        ),
     },
     "iphone-6": {
         "viewport": {"width": 375, "height": 667},
-        "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1",
+        "user_agent": (
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) "
+            "AppleWebKit/604.1.38 (KHTML, like Gecko) "
+            "Version/11.0 Mobile/15A372 Safari/604.1"
+        ),
     },
     "ipad-2": {
         "viewport": {"width": 768, "height": 1024},
-        "user_agent": "Mozilla/5.0 (iPad; CPU OS 11_0 like Mac OS X) AppleWebKit/604.1.34 (KHTML, like Gecko) Version/11.0 Mobile/15A5341f Safari/604.1",
+        "user_agent": (
+            "Mozilla/5.0 (iPad; CPU OS 11_0 like Mac OS X) "
+            "AppleWebKit/604.1.34 (KHTML, like Gecko) "
+            "Version/11.0 Mobile/15A5341f Safari/604.1"
+        ),
     },
     "samsung-s10": {
         "viewport": {"width": 360, "height": 760},
-        "user_agent": "Mozilla/5.0 (Linux; Android 9; SAMSUNG SM-G973U) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/9.2 Chrome/67.0.3396.87 Mobile Safari/537.36",
+        "user_agent": (
+            "Mozilla/5.0 (Linux; Android 9; SAMSUNG SM-G973U) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "SamsungBrowser/9.2 Chrome/67.0.3396.87 Mobile Safari/537.36"
+        ),
     },
 }
 
@@ -68,50 +78,6 @@ TEST_LOCATIONS = {
 }
 
 
-def pytest_configure(config):
-    """
-    Pytest hook called before test collection.
-    Fetches and caches the webpack script from the frontend dev server.
-    """
-    # In xdist, run this only on master (workers share FS)
-    if getattr(config, "workerinput", None) is not None:
-        return
-
-    # Create cache directory if it doesn't exist
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Fetch webpack script if not cached
-    if not CACHE_FILE.exists():
-        print(f"\nFetching webpack script from {WEBPACK_SCRIPT_URL}...")
-        try:
-            # Validate URL scheme and hostname (Ruff S310)
-            parsed = urlparse(WEBPACK_SCRIPT_URL)
-            if parsed.scheme not in {"http", "https"} or parsed.hostname not in {
-                "localhost",
-                "127.0.0.1",
-            }:
-                raise ValueError(f"Refusing non-local URL: {WEBPACK_SCRIPT_URL}")
-
-            with urlopen(WEBPACK_SCRIPT_URL, timeout=10) as response:  # noqa: S310
-                script_content = response.read().decode("utf-8")
-
-            # Validate script content
-            if len(script_content) < 100:
-                raise ValueError("Webpack script content is too short, likely invalid")
-
-            # Save to cache (atomic write via temp file)
-            tmp = CACHE_FILE.with_suffix(".js.tmp")
-            tmp.write_text(script_content, encoding="utf-8")
-            tmp.replace(CACHE_FILE)
-            print(f"Webpack script cached to {CACHE_FILE} ({len(script_content)} bytes)")
-
-        except (URLError, TimeoutError) as e:
-            print(f"WARNING: Failed to fetch webpack script: {e}")
-            print("Tests may fail if webpack script is required.")
-    else:
-        print(f"\nUsing cached webpack script from {CACHE_FILE}")
-
-
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):  # noqa: ARG001
     """
@@ -123,45 +89,21 @@ def pytest_runtest_makereport(item, call):  # noqa: ARG001
     setattr(item, f"rep_{rep.when}", rep)
 
 
-@pytest.fixture(scope="session")
-def webpack_script() -> str:
-    """
-    Session-scoped fixture that loads the cached webpack script.
-    """
-    if not CACHE_FILE.exists():
-        raise FileNotFoundError(
-            f"Webpack script cache file not found: {CACHE_FILE}. "
-            "Ensure the frontend dev server is running on localhost:8080."
-        )
-
-    return CACHE_FILE.read_text()
-
-
 @pytest.fixture
-def page(page: Page, webpack_script: str) -> Page:
+def page(page: Page) -> Page:
     """
-    Override the default Playwright page fixture to intercept webpack script requests.
+    Override the default Playwright page fixture.
 
-    This fixture automatically routes requests to the webpack script URL
-    and serves the cached version instead of hitting the network.
     Sets desktop viewport size (1280x800) for consistent desktop testing.
     Blocks HMR/websocket requests to prevent page refreshes during tests.
     """
     # Set desktop viewport size
     page.set_viewport_size({"width": 1280, "height": 800})
 
-    def handle_webpack_route(route: Route) -> None:
-        """Intercept webpack script requests and serve from cache"""
-        route.fulfill(
-            status=200, content_type="application/javascript; charset=utf-8", body=webpack_script
-        )
-
     def block_hmr_route(route: Route) -> None:
         """Block HMR/hot reload requests to prevent page refreshes"""
         route.abort()
 
-    # Setup route interception
-    page.route(WEBPACK_SCRIPT_URL, handle_webpack_route)
     # Block HMR websocket and hot update requests
     page.route("**/ws", block_hmr_route)
     page.route("**/*.hot-update.*", block_hmr_route)
@@ -207,7 +149,7 @@ def window_open_stub(page: Page) -> Callable[[], list[str]]:
 
 
 @pytest.fixture
-def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, None]:
+def mobile_page(browser, request) -> Generator[Page, None, None]:
     """
     Fixture that creates a page with proper mobile device emulation.
 
@@ -270,17 +212,10 @@ def mobile_page(browser, webpack_script: str, request) -> Generator[Page, None, 
     # Create a page from this context
     page = context.new_page()
 
-    # Setup webpack route interception (same as regular page fixture)
-    def handle_webpack_route(route: Route) -> None:
-        route.fulfill(
-            status=200, content_type="application/javascript; charset=utf-8", body=webpack_script
-        )
-
     def block_hmr_route(route: Route) -> None:
         """Block HMR/hot reload requests to prevent page refreshes"""
         route.abort()
 
-    page.route(WEBPACK_SCRIPT_URL, handle_webpack_route)
     # Block HMR websocket and hot update requests
     page.route("**/ws", block_hmr_route)
     page.route("**/*.hot-update.*", block_hmr_route)
@@ -447,6 +382,5 @@ __all__ = [
     "geolocation",
     "page",
     "performance_tracker",
-    "webpack_script",
     "window_open_stub",
 ]

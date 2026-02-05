@@ -88,7 +88,8 @@ class TestStress:
             elapsed_ms = (end_time - start_time) * 1000
 
             print(
-                f"Run {run_number} took {elapsed_ms:.0f}ms and loaded {marker_count} markers/clusters"
+                f"Run {run_number} took {elapsed_ms:.0f}ms "
+                f"and loaded {marker_count} markers/clusters"
             )
 
             # Record performance data
