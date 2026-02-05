@@ -108,6 +108,8 @@ class TestStress:
             for i in range(max_clicks):
                 if individual_markers.count() > 0:
                     break
+                if clusters.count() == 0:
+                    raise AssertionError("No clusters or individual markers found to click")
                 clusters.first.click()
                 print(f"Click {i + 1}: expanding cluster...")
                 expect(page.locator(".leaflet-marker-icon").first).to_be_visible(
