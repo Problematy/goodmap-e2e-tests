@@ -1,7 +1,7 @@
 """
 Pytest fixtures and configuration for Playwright E2E tests.
 
-This module provides custom fixtures for:
+Provides custom fixtures for:
 - Webpack script caching and interception
 - Window.open() stub tracking
 - Geolocation mocking
@@ -13,17 +13,13 @@ from collections.abc import Callable, Generator
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import BrowserContext, Page, Route
+from playwright.sync_api import BrowserContext, Page
 
-# Constants
 BASE_URL = "http://localhost:5000"
 
-# Timeouts (in milliseconds)
-MAP_LOAD_TIMEOUT = 5000
 MARKER_LOAD_TIMEOUT = 5000
 TABLE_LOAD_TIMEOUT = 5000
 
-# Mobile device configurations for Playwright
 MOBILE_DEVICES = {
     "iphone-x": {
         "viewport": {"width": 375, "height": 812},
@@ -59,34 +55,39 @@ MOBILE_DEVICES = {
     },
 }
 
-# Device lists for parametrized tests
 ALL_MOBILE_DEVICES = list(MOBILE_DEVICES.keys())
 
-# UI alignment tolerance (in pixels)
 UI_VERTICAL_ALIGNMENT_TOLERANCE = 3
 
-# Test locations
 TEST_LOCATIONS = {
     "RYSY_MOUNTAIN": {
         "lat": 49.179,
         "lon": 20.088,
-        # Tile pattern matches zoom 14-16 for Rysy Mountain area
-        # Zoom 16: 36424/22456, Zoom 15: 18211-18212/11227-11228, Zoom 14: 9105-9106/5613-5614
         "tile_pattern": r"https://[abc]\.tile\.openstreetmap\.org/1[456]/\d+/\d+\.png",
     },
     "WROCLAW_CENTER": {"lat": 51.10655, "lon": 17.0555},
 }
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):  # noqa: ARG001
+def _block_hmr(page: Page) -> None:
+    """Block HMR/hot reload requests to prevent page refreshes during tests."""
+    page.route("**/ws", lambda route: route.abort())
+    page.route("**/*.hot-update.*", lambda route: route.abort())
+
+
+def _stub_window_open(page: Page) -> Callable[[], list[str]]:
+    """Stub window.open() and return a callable that retrieves opened URLs."""
+    opened_urls = []
+    page.expose_function("__captureWindowOpen", lambda url: opened_urls.append(url))
+    page.add_init_script(
+        """
+        window.open = function(url, target, features) {
+            window.__captureWindowOpen(url);
+            return null;
+        };
     """
-    Hook to store test result on the item for use in fixtures.
-    Used by mobile_page fixture to determine if video should be retained.
-    """
-    outcome = yield
-    rep = outcome.get_result()
-    setattr(item, f"rep_{rep.when}", rep)
+    )
+    return lambda: opened_urls.copy()
 
 
 @pytest.fixture
@@ -97,77 +98,33 @@ def page(page: Page) -> Page:
     Sets desktop viewport size (1280x800) for consistent desktop testing.
     Blocks HMR/websocket requests to prevent page refreshes during tests.
     """
-    # Set desktop viewport size
     page.set_viewport_size({"width": 1280, "height": 800})
-
-    def block_hmr_route(route: Route) -> None:
-        """Block HMR/hot reload requests to prevent page refreshes"""
-        route.abort()
-
-    # Block HMR websocket and hot update requests
-    page.route("**/ws", block_hmr_route)
-    page.route("**/*.hot-update.*", block_hmr_route)
-
+    _block_hmr(page)
     return page
 
 
 @pytest.fixture
 def window_open_stub(page: Page) -> Callable[[], list[str]]:
     """
-    Fixture that stubs window.open() and tracks all opened URLs.
+    Stub window.open() and track all opened URLs.
 
-    Returns:
-        A callable that returns the list of URLs opened via window.open()
-
-    Example:
-        def test_popup_opens_link(page, window_open_stub):
-            page.goto(BASE_URL)
-            page.click("text=Open Link")
-            opened_urls = window_open_stub()
-            assert len(opened_urls) == 1
-            assert "google.com" in opened_urls[0]
+    Returns a callable that returns the list of URLs opened via window.open().
     """
-    opened_urls = []
-
-    # Expose a function to capture window.open calls
-    page.expose_function("__captureWindowOpen", lambda url: opened_urls.append(url))
-
-    # Stub window.open in the page context
-    page.add_init_script(
-        """
-        window.open = function(url, target, features) {
-            window.__captureWindowOpen(url);
-            return null;  // Prevent actual window opening
-        };
-    """
-    )
-
-    def get_opened_urls() -> list[str]:
-        return opened_urls.copy()
-
-    return get_opened_urls
+    return _stub_window_open(page)
 
 
 @pytest.fixture
 def mobile_page(browser, request) -> Generator[Page, None, None]:
     """
-    Fixture that creates a page with proper mobile device emulation.
+    Create a page with proper mobile device emulation.
 
-    This fixture creates a new browser context with the correct user agent,
+    Creates a new browser context with the correct user agent,
     ensuring that react-device-detect properly identifies the device as mobile.
 
     Supports two parametrization styles:
-    1. Indirect (preferred):
-        @pytest.mark.parametrize("mobile_page", ALL_MOBILE_DEVICES, indirect=True)
-        def test_mobile(mobile_page):
-            ...
-
-    2. Legacy (device_name parameter):
-        @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
-        def test_mobile(mobile_page, device_name):
-            ...
+    1. Indirect: @pytest.mark.parametrize("mobile_page", ALL_MOBILE_DEVICES, indirect=True)
+    2. Legacy: @pytest.mark.parametrize("device_name", ALL_MOBILE_DEVICES)
     """
-    # Support both indirect parametrization and legacy device_name parameter
     if hasattr(request, "param"):
         device_name = request.param
     else:
@@ -178,141 +135,53 @@ def mobile_page(browser, request) -> Generator[Page, None, None]:
         if not device_name:
             raise ValueError("mobile_page fixture requires 'device_name' parameter")
 
-    try:
-        device_config = MOBILE_DEVICES[device_name]
-    except KeyError as e:
-        raise ValueError(
-            f"Unknown device_name={device_name}. Expected one of: {list(MOBILE_DEVICES)}"
-        ) from e
+    device_config = MOBILE_DEVICES[device_name]
 
-    # Determine video recording settings from pytest config
-    video_option = request.config.getoption("--video", default="off")
-    record_video_dir = None
-    record_video_size = None
-    if video_option in ("on", "retain-on-failure"):
-        output_dir = request.config.getoption("--output", default="test-results")
-        # Create a unique directory for this test's video using nodeid to prevent collisions
-        nodeid = request.node.nodeid
-        safe_nodeid = (
-            nodeid.replace("::", "__").replace("/", "__").replace("[", "-").replace("]", "")
-        )
-        record_video_dir = str(Path(output_dir) / safe_nodeid)
-        # Set video size to match mobile viewport for clearer recordings
-        record_video_size = device_config["viewport"]
-
-    # Create a new context with mobile user agent, touch support, and optional video recording
     context = browser.new_context(
         viewport=device_config["viewport"],
         user_agent=device_config["user_agent"],
         has_touch=True,
-        record_video_dir=record_video_dir,
-        record_video_size=record_video_size,
     )
-
-    # Create a page from this context
     page = context.new_page()
-
-    def block_hmr_route(route: Route) -> None:
-        """Block HMR/hot reload requests to prevent page refreshes"""
-        route.abort()
-
-    # Block HMR websocket and hot update requests
-    page.route("**/ws", block_hmr_route)
-    page.route("**/*.hot-update.*", block_hmr_route)
+    _block_hmr(page)
 
     yield page
 
-    # Get video path before closing (video is saved on close)
-    video = page.video
-    video_path = video.path() if video else None
-
-    # Cleanup
     page.close()
     context.close()
-
-    # Handle retain-on-failure: delete video if test passed
-    if video_path and video_option == "retain-on-failure":
-        # Check if any test phase failed (setup, call, or teardown)
-        rep_setup = getattr(request.node, "rep_setup", None)
-        rep_call = getattr(request.node, "rep_call", None)
-        rep_teardown = getattr(request.node, "rep_teardown", None)
-        test_failed = any(rep and rep.failed for rep in (rep_setup, rep_call, rep_teardown))
-        if not test_failed and Path(video_path).exists():
-            Path(video_path).unlink()
-            # Remove empty directory
-            video_dir = Path(video_path).parent
-            if video_dir.exists() and not any(video_dir.iterdir()):
-                video_dir.rmdir()
 
 
 @pytest.fixture
 def mobile_window_open_stub(mobile_page: Page) -> Callable[[], list[str]]:
     """
-    Fixture that stubs window.open() for mobile pages and tracks all opened URLs.
-    Same as window_open_stub but works with mobile_page fixture.
+    Stub window.open() for mobile pages and track all opened URLs.
+
+    Same as window_open_stub but works with the mobile_page fixture.
     """
-    opened_urls = []
-
-    # Expose a function to capture window.open calls
-    mobile_page.expose_function("__captureWindowOpen", lambda url: opened_urls.append(url))
-
-    # Stub window.open in the page context
-    mobile_page.add_init_script(
-        """
-        window.open = function(url, target, features) {
-            window.__captureWindowOpen(url);
-            return null;  // Prevent actual window opening
-        };
-    """
-    )
-
-    def get_opened_urls() -> list[str]:
-        return opened_urls.copy()
-
-    return get_opened_urls
+    return _stub_window_open(mobile_page)
 
 
 @pytest.fixture
 def geolocation(context: BrowserContext) -> Callable[[float, float], None]:
     """
-    Fixture that provides a function to set geolocation.
+    Provide a function to set browser geolocation.
 
-    Returns:
-        A callable that sets the geolocation to the given lat/lon coordinates.
-
-    Example:
-        def test_my_location(page, geolocation):
-            geolocation(50.0614, 19.9365)  # Krakow coordinates
-            page.goto(BASE_URL)
-            # ... test location-based functionality
+    Returns a callable that sets the geolocation to the given lat/lon coordinates.
     """
-    # Grant geolocation permissions
     context.grant_permissions(["geolocation"])
 
     def set_location(latitude: float, longitude: float) -> None:
-        """Set the browser geolocation"""
         context.set_geolocation({"latitude": latitude, "longitude": longitude})
 
     return set_location
 
 
 @pytest.fixture
-def performance_tracker() -> Callable:
+def performance_tracker():
     """
-    Fixture for tracking performance metrics in stress tests.
+    Track performance metrics for stress tests.
 
-    Returns:
-        An object with methods to measure and retrieve run times.
-
-    Example:
-        def test_stress(page, performance_tracker):
-            for i in range(5):
-                start_time = time.time()
-                # ... perform test actions
-                elapsed_ms = (time.time() - start_time) * 1000
-                performance_tracker.add_run(i + 1, elapsed_ms, marker_count)
-
-            performance_tracker.save("test-results/stress-test-perf.json")
+    Returns an object with methods to add_run(), calculate_stats(), and save() results.
     """
 
     class PerformanceTracker:
@@ -322,14 +191,12 @@ def performance_tracker() -> Callable:
             self.expected_runs = 0
 
         def add_run(self, run_number: int, time_ms: float, markers: int):
-            """Add a performance measurement"""
             self.run_times.append(
                 {"run": run_number, "time": round(time_ms, 2), "markers": markers}
             )
             self.num_runs += 1
 
         def calculate_stats(self, max_allowed_ms: int = 25000):
-            """Calculate performance statistics"""
             if not self.run_times:
                 return {}
 
@@ -349,38 +216,9 @@ def performance_tracker() -> Callable:
             }
 
         def save(self, filepath: str, max_allowed_ms: int = 25000):
-            """Save performance data to JSON file"""
             stats = self.calculate_stats(max_allowed_ms)
-
-            # Ensure directory exists
             Path(filepath).parent.mkdir(parents=True, exist_ok=True)
-
             with open(filepath, "w") as f:
                 json.dump(stats, f, indent=2)
 
-            print(f"\nPerformance data saved to {filepath}")
-            if stats:
-                print(f"Average time: {stats['avgTime']}ms")
-                print(f"Max time: {stats['maxTime']}ms")
-                print(f"Passed: {stats['passed']}")
-            else:
-                print("No runs recorded.")
-
     return PerformanceTracker()
-
-
-# Export constants for use in tests
-__all__ = [
-    "ALL_MOBILE_DEVICES",
-    "BASE_URL",
-    "MAP_LOAD_TIMEOUT",
-    "MARKER_LOAD_TIMEOUT",
-    "MOBILE_DEVICES",
-    "TABLE_LOAD_TIMEOUT",
-    "TEST_LOCATIONS",
-    "UI_VERTICAL_ALIGNMENT_TOLERANCE",
-    "geolocation",
-    "page",
-    "performance_tracker",
-    "window_open_stub",
-]
