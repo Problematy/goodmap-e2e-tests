@@ -31,7 +31,7 @@ e2e-stress-tests:
 	$(MAKE) pytest-run PYTEST_SPEC="tests/stress"
 
 run-e2e-env:
-	poetry --project '$(GOODMAP_PATH)' run flask --app "goodmap.goodmap:create_app(config_path='$(CONFIG_PATH)')" --debug run
+	poetry -C '$(GOODMAP_PATH)' run flask --app "goodmap.goodmap:create_app(config_path='$(CURDIR)/$(CONFIG_PATH)')" --debug run
 
 compile-translations:
 	poetry run pybabel compile -d translations
