@@ -40,9 +40,21 @@ class TestGoToMyLocationButton:
         my_location_button.click()
 
         # Wait for Leaflet flyTo animation to finish before checking the tile.
-        # flyTo across many zoom levels can take >5s in headless CI environments.
+        # Two-phase sync: first confirm the animation has started (so we don't
+        # pass instantly if .leaflet-zoom-anim hasn't been added yet), then wait
+        # for it to disappear. The rAF loop avoids a gap between the two polls.
         page.wait_for_function(
-            "!document.querySelector('.leaflet-zoom-anim')", timeout=15000
+            """() => new Promise(resolve => {
+                let started = false;
+                const check = () => {
+                    const animating = !!document.querySelector('.leaflet-zoom-anim');
+                    if (animating) started = true;
+                    if (started && !animating) { resolve(true); return; }
+                    requestAnimationFrame(check);
+                };
+                requestAnimationFrame(check);
+            })""",
+            timeout=15000,
         )
 
         # Verify the final tile is a high-zoom tile at the expected location
