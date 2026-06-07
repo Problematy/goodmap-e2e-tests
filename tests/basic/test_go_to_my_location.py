@@ -39,7 +39,13 @@ class TestGoToMyLocationButton:
         )
         my_location_button.click()
 
-        # Wait for map tile to load and verify it's a high-zoom tile for the location
+        # Wait for Leaflet flyTo animation to finish before checking the tile.
+        # flyTo across many zoom levels can take >5s in headless CI environments.
+        page.wait_for_function(
+            "!document.querySelector('.leaflet-zoom-anim')", timeout=15000
+        )
+
+        # Verify the final tile is a high-zoom tile at the expected location
         # Different frontend versions may zoom to slightly different levels (13-16)
         map_tile = page.locator(".leaflet-tile-container > img").first
         expect(map_tile).to_have_attribute(
